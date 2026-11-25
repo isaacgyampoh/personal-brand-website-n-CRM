@@ -162,7 +162,7 @@ export function renderEmail(
   const htmlBody = substitute(escapeHtml(def.body), data, true)
     .split(/\n{2,}/)
     .map((para) => {
-      const button = /^\s*\[([^\]]+)\]\(([^)]+)\)\s*$/.exec(para);
+      const button = /^\s*\[([^\]]+)\]\((\S+)\)\s*$/.exec(para);
       if (button) {
         const href = button[2].replace(/&amp;/g, "&");
         if (!/^https?:\/\//.test(href)) return "";

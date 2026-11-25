@@ -24,7 +24,8 @@ export function plainText(node: unknown, limit = 200_000): string {
     }
     if (Array.isArray(n.content)) {
       for (const c of n.content) walk(c);
-      if (["paragraph", "heading", "listItem", "blockquote"].includes(n.type)) out.push("\n");
+      if (["paragraph", "heading", "blockquote"].includes(n.type)) out.push("\n\n");
+      else if (n.type === "listItem") out.push("\n");
     }
   };
   if (node && typeof node === "object") walk(node as RichNode);

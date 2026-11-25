@@ -21,6 +21,11 @@ export async function requestRefund(input: { orderId: string; amountMinor: numbe
   return tx(async (t) => {
     const order = await t.one<OrderRow>("select * from orders where id = $1 for update", [input.orderId]);
     if (!order) throw new RefundError("Order not found.");
+    if (input.idempotencyKey) {
+      // A retried request with the same key is a no-op, never a second refund.
+      const prior = await t.one("select 1 from refunds where idempotency_key = $1", [input.idempotencyKey]);
+      if (prior) return null;
+    }
     if (!["paid", "partially_refunded", "needs_attention"].includes(order.status)) throw new RefundError(`Order is ${order.status}; nothing to refund.`);
     const pending = await t.one<{ n: number }>(
       "select coalesce(sum(amount_minor),0)::bigint as n from refunds where order_id = $1 and status in ('pending','processing')",

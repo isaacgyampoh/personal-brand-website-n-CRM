@@ -112,3 +112,18 @@ export function formatDate(date: Date | string, tz: string): string {
 export function formatTime(date: Date | string, tz: string): string {
   return formatInZone(new Date(date), tz, { hour: "2-digit", minute: "2-digit" });
 }
+
+/** Value for an <input type="datetime-local"> showing `date` in `tz`. */
+export function toLocalInput(date: Date | string | null | undefined, tz: string): string {
+  if (!date) return "";
+  const wc = toWallClock(new Date(date), tz);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${wc.year}-${p(wc.month)}-${p(wc.day)}T${p(wc.hour)}:${p(wc.minute)}`;
+}
+
+/** Parses an <input type="datetime-local"> value entered in business time `tz`. */
+export function fromLocalInput(value: string | null | undefined, tz: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value ?? "");
+  if (!m) return null;
+  return fromWallClock({ year: +m[1], month: +m[2], day: +m[3], hour: +m[4], minute: +m[5] }, tz);
+}
