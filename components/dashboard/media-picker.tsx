@@ -81,8 +81,8 @@ export function MediaDialog({ open, onClose, onSelect, kind = "image", visibilit
 }
 
 /** Form field that stores a media asset id (or URL) in a hidden input. */
-export function MediaPicker({ name, label, defaultId = "", defaultUrl = "", mode = "id", kind = "image", visibility = "public" }: {
-  name: string; label: string; defaultId?: string; defaultUrl?: string; mode?: "id" | "url"; kind?: "image" | "file"; visibility?: "public" | "private";
+export function MediaPicker({ name, label, defaultId = "", defaultUrl = "", mode = "id", kind = "image", visibility = "public", onChange }: {
+  name: string; label: string; defaultId?: string; defaultUrl?: string; mode?: "id" | "url"; kind?: "image" | "file"; visibility?: "public" | "private"; onChange?: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(mode === "id" ? defaultId : defaultUrl);
@@ -106,12 +106,14 @@ export function MediaPicker({ name, label, defaultId = "", defaultUrl = "", mode
           {fileName && <span className="max-w-60 truncate text-xs text-muted-foreground">{fileName}</span>}
           <div className="flex gap-2">
             <button type="button" onClick={() => setOpen(true)} className="h-8 rounded-md border px-3 text-xs font-medium hover:bg-muted">{value ? "Change" : "Choose"}</button>
-            {value && <button type="button" onClick={() => { setValue(""); setPreview(null); setFileName(null); }} className="h-8 rounded-md px-2 text-xs text-muted-foreground hover:text-foreground">Remove</button>}
+            {value && <button type="button" onClick={() => { setValue(""); setPreview(null); setFileName(null); onChange?.(""); }} className="h-8 rounded-md px-2 text-xs text-muted-foreground hover:text-foreground">Remove</button>}
           </div>
         </div>
       </div>
       <MediaDialog open={open} kind={kind} visibility={visibility} onClose={() => setOpen(false)} onSelect={(m) => {
-        setValue(mode === "id" ? m.id : m.url ?? "");
+        const next = mode === "id" ? m.id : m.url ?? "";
+        setValue(next);
+        onChange?.(next);
         setPreview(m.url);
         setFileName(m.filename);
         setOpen(false);

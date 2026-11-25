@@ -9,7 +9,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const indexable = seo.indexable && process.env.NODE_ENV === "production";
   return {
     rules: indexable
-      ? { userAgent: "*", allow: "/", disallow: ["/admin", "/portal", "/api", "/login", "/register", "/checkout", "/book/manage", "/feedback", "/go/"] }
+      ? { userAgent: "*", allow: "/", disallow: ["/admin", "/studio", "/portal", "/api", "/login", "/register", "/checkout", "/book/manage", "/feedback", "/go/"] }
       : { userAgent: "*", disallow: "/" },
     sitemap: indexable ? `${base}/sitemap.xml` : undefined,
   };

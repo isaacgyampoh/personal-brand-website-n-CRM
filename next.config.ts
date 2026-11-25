@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: common },
       {
-        source: "/(admin|portal|login|register|account)(.*)",
+        source: "/(admin|portal|studio|login|register|account)(.*)",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
     ];
