@@ -1,0 +1,307 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-heading: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--site-display, var(--font-cormorant)), Georgia, serif;
+  --font-body: var(--site-body, var(--font-manrope)), ui-sans-serif, system-ui, sans-serif;
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-accent-brand: var(--brand-accent);
+  --color-accent-ink: var(--brand-accent-ink);
+  --color-muted-ink: var(--muted-ink);
+  --color-line: var(--line);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+/* ==========================================================================
+   Public website design system ("site"). Brand values come from Settings →
+   Theme and are injected as CSS variables by the website layout.
+   ========================================================================== */
+:root {
+  --ink: #1b1916;
+  --paper: #f6f1ea;
+  --surface: #ffffff;
+  --brand-accent: #8a5a3c;
+  --brand-accent-ink: #ffffff;
+  --muted-ink: #6f675e;
+  --line: color-mix(in oklab, var(--ink) 14%, transparent);
+  --site-radius: 0px;
+  --display-scale: 1;
+}
+
+.site {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-feature-settings: "ss01", "kern";
+  text-rendering: optimizeLegibility;
+}
+.site ::selection { background: color-mix(in oklab, var(--brand-accent) 30%, transparent); }
+
+.site :focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 3px;
+}
+
+.font-display { font-family: var(--font-display); font-optical-sizing: auto; }
+
+.display-xl {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: calc(clamp(2.9rem, 7.2vw, 6.6rem) * var(--display-scale));
+  line-height: 0.96;
+  letter-spacing: -0.025em;
+}
+.display-lg {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: calc(clamp(2.3rem, 5vw, 4.4rem) * var(--display-scale));
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+}
+.display-md {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: calc(clamp(1.8rem, 3.4vw, 2.9rem) * var(--display-scale));
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+}
+.display-sm {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: calc(clamp(1.35rem, 2vw, 1.7rem) * var(--display-scale));
+  line-height: 1.2;
+}
+.display-xl em, .display-lg em, .display-md em, .display-sm em {
+  font-style: italic;
+  color: var(--brand-accent);
+}
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted-ink);
+}
+.eyebrow-rule { display: inline-flex; align-items: center; gap: 0.9rem; }
+.eyebrow-rule::before { content: ""; width: 2.25rem; height: 1px; background: currentColor; opacity: 0.6; }
+
+.lede { font-size: clamp(1.05rem, 1.35vw, 1.22rem); line-height: 1.7; color: color-mix(in oklab, var(--ink) 82%, var(--paper)); }
+.prose-site { font-size: 1.075rem; line-height: 1.8; }
+.prose-site p + p { margin-top: 1.15em; }
+
+.rule { height: 1px; background: var(--line); border: 0; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
+  min-height: 3rem; padding: 0.85rem 1.6rem;
+  font-family: var(--font-body); font-size: 0.82rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  border-radius: var(--site-radius); border: 1px solid transparent;
+  transition: background-color .25s ease, color .25s ease, border-color .25s ease, transform .25s ease;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+}
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn-primary { background: var(--ink); color: var(--paper); }
+.btn-primary:hover { background: var(--brand-accent); color: var(--brand-accent-ink); }
+.btn-accent { background: var(--brand-accent); color: var(--brand-accent-ink); }
+.btn-accent:hover { background: var(--ink); color: var(--paper); }
+.btn-outline { border-color: currentColor; color: inherit; background: transparent; }
+.btn-outline:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn-link {
+  min-height: auto; padding: 0.35rem 0; letter-spacing: 0.14em;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+}
+.btn-link:hover { background-size: 0% 1px; background-position: 100% 100%; transition: background-size .35s ease; }
+.btn .arrow { transition: transform .25s ease; }
+.btn:hover .arrow { transform: translateX(4px); }
+
+.tone-ink { --tone-bg: var(--ink); --tone-fg: var(--paper); }
+.tone-ink { background: var(--ink); color: var(--paper); --muted-ink: color-mix(in oklab, var(--paper) 65%, var(--ink)); --line: color-mix(in oklab, var(--paper) 18%, transparent); }
+.tone-ink .btn-primary { background: var(--paper); color: var(--ink); }
+.tone-ink .btn-primary:hover { background: var(--brand-accent); color: var(--brand-accent-ink); }
+.tone-ink .lede { color: color-mix(in oklab, var(--paper) 82%, var(--ink)); }
+.tone-accent { background: var(--brand-accent); color: var(--brand-accent-ink); --muted-ink: color-mix(in oklab, var(--brand-accent-ink) 75%, var(--brand-accent)); --line: color-mix(in oklab, var(--brand-accent-ink) 25%, transparent); }
+.tone-accent .display-xl em, .tone-accent .display-lg em, .tone-accent .display-md em { color: inherit; }
+.tone-accent .btn-primary { background: var(--brand-accent-ink); color: var(--brand-accent); }
+.tone-accent .lede { color: inherit; opacity: .9; }
+.tone-surface { background: var(--surface); }
+.tone-paper { background: var(--paper); }
+
+.field {
+  width: 100%; min-height: 3rem; padding: 0.8rem 0.95rem;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid color-mix(in oklab, var(--ink) 22%, transparent); border-radius: var(--site-radius);
+  font: inherit; font-size: 1rem;
+}
+.field:focus { outline: 2px solid var(--brand-accent); outline-offset: 0; border-color: transparent; }
+.field-label { display: block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; margin-bottom: 0.45rem; }
+
+.card-frame { background: var(--surface); border: 1px solid var(--line); border-radius: var(--site-radius); }
+
+.img-frame { position: relative; overflow: hidden; background: color-mix(in oklab, var(--ink) 6%, var(--paper)); border-radius: var(--site-radius); }
+.img-frame img { transition: transform 1.2s cubic-bezier(.2,.7,.2,1); }
+.group:hover .img-frame img { transform: scale(1.035); }
+
+.monogram {
+  font-family: var(--font-display); font-style: italic; line-height: 1; letter-spacing: -0.04em;
+  color: color-mix(in oklab, var(--brand-accent) 70%, var(--ink));
+}
+
+/* Scroll reveal (progressive enhancement). Content is visible without JS. */
+.reveal-init .reveal { opacity: 0; transform: translateY(18px); transition: opacity .9s ease, transform .9s cubic-bezier(.2,.7,.2,1); }
+.reveal-init .reveal.is-visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal-init .reveal { opacity: 1; transform: none; transition: none; }
+  .site *, .site *::before, .site *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+.skip-link { position: absolute; left: 1rem; top: -4rem; z-index: 100; background: var(--ink); color: var(--paper); padding: .75rem 1rem; }
+.skip-link:focus { top: 1rem; }
+
+.marquee { display: flex; gap: 4rem; animation: marquee 40s linear infinite; width: max-content; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+.site-container { width: 100%; max-width: 1320px; margin-inline: auto; padding-inline: clamp(1.25rem, 4vw, 3rem); }
+.section-y { padding-block: clamp(4.5rem, 10vw, 9rem); }
+.section-y-sm { padding-block: clamp(3rem, 6vw, 5rem); }
+
+.demo-flag {
+  position: fixed; bottom: 12px; right: 12px; z-index: 60; font: 600 11px/1 system-ui, sans-serif; letter-spacing: .08em;
+  background: #b45309; color: #fff; padding: 8px 10px; text-transform: uppercase;
+}
+
+/* Typographic cover used when no photograph has been uploaded yet. */
+.cover-type {
+  color: var(--ink);
+  background:
+    linear-gradient(var(--line), var(--line)) 50% 0 / 1px 100% no-repeat,
+    color-mix(in oklab, var(--brand-accent) 13%, var(--paper));
+  overflow: hidden;
+}
+.group:nth-child(3n+2) .cover-type, .cover-alt { background-color: color-mix(in oklab, var(--ink) 92%, var(--brand-accent)); color: var(--paper); }
