@@ -1,0 +1,3 @@
+# /etc/cron.d/brand-platform — nightly encrypted backup at 02:30, copied off-server to R2.
+# Requires: postgresql-client, openssl, awscli on the host; secrets in /etc/brand-platform/backup.env (chmod 600).
+30 2 * * * deploy . /etc/brand-platform/backup.env && /opt/brand-platform/scripts/backup.sh /var/backups/brand-platform && aws s3 sync /var/backups/brand-platform s3://$R2_BACKUP_BUCKET/db --endpoint-url https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com --only-show-errors >> /var/log/brand-backup.log 2>&1

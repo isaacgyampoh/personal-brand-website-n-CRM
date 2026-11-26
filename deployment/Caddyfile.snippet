@@ -1,0 +1,21 @@
+# Add to the EXISTING shared Caddyfile (do not replace it). Cloudflare proxies DNS;
+# use Full (strict) SSL. Caddy obtains/renews certificates automatically.
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	@static path /_next/static/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
+	reverse_proxy brand-platform-web-1:3000 {
+		header_up X-Real-IP {http.request.header.CF-Connecting-IP}
+		health_uri /api/health
+		health_interval 30s
+	}
+	request_body {
+		max_size 120MB
+	}
+	log {
+		output file /var/log/caddy/brand-platform.log {
+			roll_size 20MiB
+			roll_keep 5
+		}
+	}
+}

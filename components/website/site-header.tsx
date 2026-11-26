@@ -54,13 +54,13 @@ export function SiteHeader(props: { brandName: string; logoUrl: string; logoText
         scrolled ? "bg-[color-mix(in_oklab,var(--paper)_92%,transparent)] shadow-[0_1px_0_var(--line)] backdrop-blur-md" : "bg-transparent"
       }`}
     >
-      <div className="site-container flex h-[72px] items-center justify-between gap-6 md:h-[84px]">
-        <Link href="/" className="flex min-h-11 items-center" aria-label={`${props.brandName} — home`}>
+      <div className="site-container flex h-[72px] items-center justify-between gap-4 md:h-[84px] md:gap-6">
+        <Link href="/" className="flex min-h-11 min-w-0 items-center" aria-label={`${props.brandName} — home`}>
           {props.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={props.logoUrl} alt="" className="h-9 w-auto md:h-10" />
           ) : (
-            <span className="font-display text-[1.65rem] leading-none tracking-[-0.01em] md:text-[1.85rem]">{mark}</span>
+            <span className="truncate font-display text-[1.5rem] leading-none tracking-[-0.01em] sm:text-[1.65rem] md:text-[1.85rem]">{mark}</span>
           )}
         </Link>
 
@@ -80,7 +80,7 @@ export function SiteHeader(props: { brandName: string; logoUrl: string; logoText
           </ul>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           {props.cta.label && (
             <Link href={props.cta.href} className="btn btn-primary hidden !min-h-11 !px-5 sm:inline-flex">
               {props.cta.label}

@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Personal Brand & Coaching Platform
 
-## Getting Started
+One application that runs a coach / consultant / speaker's whole business:
 
-First, run the development server:
+- **Public website** — editorial, mobile-first brand site: services, booking, masterclasses, academy, shop, insights, speaking, case studies, press, testimonials, brand assessment, link-in-bio, legal pages.
+- **Studio (admin CRM)** — dashboard, contacts & pipeline, bookings & availability, masterclasses, payments & reconciliation, visual website builder, content studio & calendar, media library, academy & shop, marketing (campaigns, tracked links, discount codes), assessments, partnerships, analytics, settings, team & roles, jobs & audit log, optional AI drafting assistant.
+- **Customer & student portal** — appointments, protected class pages, courses with progress and quizzes, downloads, receipts, certificates, profile.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Built for **one client** (not multi-tenant), structured so it can grow into a product later.
+
+## Stack
+
+Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS 4 · shadcn/ui (admin) · PostgreSQL (Supabase or self-hosted) · Supabase Auth *or* built-in auth · Paystack · Cloudflare R2 · SMTP · Puck (visual editor) · Tiptap · Zod · Recharts · Vitest · Playwright · Docker + Caddy.
+
+## Architecture (lightweight clean architecture)
+
+```
+features/<module>/
+  domain/          pure business rules (availability, pricing, scoring, capacity rules) — no I/O
+  application/     use cases (book, register, checkout, fulfil, refund, publish…)
+  infrastructure/  SQL repositories & provider adapters (Paystack, SMTP, mNotify, Google)
+  presentation/    server actions (validated with Zod, permission-checked)
+app/               routes: (website) · (authentication) · admin · studio · portal · api
+components/        website · dashboard · editor · portal · shared
+lib/               database, auth (provider port), storage (R2/local port), jobs, security, cache
+supabase/          portable SQL migrations + seed
+workers/           background worker (PostgreSQL job queue)
+tests/             unit · integration (real Postgres) · e2e (Playwright)
+deployment/        Dockerfile targets, docker-compose, Caddy snippet, deploy & backup scripts
+docs/              setup, deployment, migration, security, Supabase Free notes, delivery report
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Critical invariants live **in the database**: no double bookings (exclusion constraint), no overselling (locking capacity trigger), valid order state transitions, append-only ledger/audit/receipts, one receipt and one fulfilment per order, idempotent webhooks.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Quick start (local development)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Requires Node 24, pnpm, PostgreSQL 15+.
 
-## Learn More
+```bash
+pnpm install
+cp .env.example .env.local        # then set APP_SECRET, DATABASE_URL, AUTH_PROVIDER=local, STORAGE_DRIVER=local
+createdb brand_dev
+pnpm db:seed                      # migrations + essential reference data
+OWNER_PASSWORD='choose-a-long-password' pnpm create-owner --email you@example.com --name "Your Name"
+pnpm db:demo                      # optional, clearly-labelled demonstration content
+pnpm dev                          # http://localhost:3000  (admin at /admin)
+pnpm worker                       # background jobs: emails, reminders, reconciliation, scheduled publishing
+```
 
-To learn more about Next.js, take a look at the following resources:
+Without SMTP, development emails are written to `.data/mail/`. Without Paystack keys, paid checkout is disabled with an honest message (free bookings/registrations still work).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tests
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm test        # unit + integration (creates and resets a separate brand_test database)
+pnpm test:e2e    # Playwright against a running dev server with demo data
+pnpm typecheck && pnpm lint && pnpm build
+```
 
-## Deploy on Vercel
+## Documentation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [docs/SETUP.md](docs/SETUP.md) — configuring Supabase, Paystack, SMTP, R2, Google Calendar, AI, first owner, going live
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Contabo staging/production, backups, restore, rollback, monitoring
+- [docs/SUPABASE-FREE.md](docs/SUPABASE-FREE.md) — verified free-tier limits, risks and mitigations
+- [docs/MIGRATION.md](docs/MIGRATION.md) — moving from Supabase to self-hosted PostgreSQL (incl. auth)
+- [docs/SECURITY.md](docs/SECURITY.md) — controls, threat notes, checks performed
+- [docs/PROGRESS.md](docs/PROGRESS.md) — progress tracker
+- [docs/DELIVERY-REPORT.md](docs/DELIVERY-REPORT.md) — what is done, tested, blocked, and the GO/NO-GO recommendation

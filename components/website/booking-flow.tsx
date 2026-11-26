@@ -98,7 +98,7 @@ export function BookingFlow(props: { serviceSlug: string; serviceName: string; p
             <div className="grid grid-cols-7 text-center text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-[var(--muted-ink)]" aria-hidden>
               {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => <span key={d} className="py-2">{d}</span>)}
             </div>
-            <div className="grid grid-cols-7 gap-1" role="grid" aria-label="Available dates">
+            <div className="grid grid-cols-7 gap-1" role="group" aria-label="Available dates">
               {grid.map((d, i) => {
                 if (!d) return <span key={i} />;
                 const k = keyOf(month.y, month.m, d);
