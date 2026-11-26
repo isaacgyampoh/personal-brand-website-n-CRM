@@ -44,7 +44,7 @@ async function demoPdf(title: string): Promise<Buffer> {
 
 async function main() {
   const owner = await db.one<{ id: string }>("select id from users where role in ('owner','admin') order by created_at limit 1");
-  if (!owner) throw new Error("Create an owner first: OWNER_PASSWORD=... pnpm create-owner --email ...");
+  if (!owner) throw new Error("Create an owner first: pnpm create-owner --email you@example.com --name \"Your Name\"");
 
   await tx(async (t) => {
     await t.query(

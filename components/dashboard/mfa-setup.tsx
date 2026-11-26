@@ -9,7 +9,7 @@ function Codes({ codes }: { codes: string[] }) {
   return (
     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
       <p className="text-sm font-medium text-emerald-900">Save these recovery codes somewhere safe (a password manager). Each works once if you lose your phone. They won&apos;t be shown again.</p>
-      <ul className="mt-3 grid grid-cols-2 gap-2 font-mono text-sm sm:grid-cols-5">{codes.map((c) => <li key={c}>{c}</li>)}</ul>
+      <ul data-testid="recovery-codes" className="mt-3 grid grid-cols-2 gap-2 font-mono text-sm sm:grid-cols-5">{codes.map((c) => <li key={c}>{c}</li>)}</ul>
       <div className="mt-3"><CopyButton text={codes.join("\n")} label="Copy codes" /></div>
     </div>
   );
@@ -34,7 +34,7 @@ export function MfaSetup() {
       <ol className="list-decimal space-y-2 pl-5 text-sm">
         <li>Install an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password or Authy).</li>
         <li>On this phone, <a href={setup.uri} className="font-medium underline">tap here to add the account</a>, or choose &quot;Enter a setup key&quot; in the app and type:
-          <div className="mt-2 flex items-center gap-2"><code className="rounded bg-muted px-2 py-1 font-mono text-sm tracking-wider">{grouped}</code><CopyButton text={setup.secret} /></div>
+          <div className="mt-2 flex items-center gap-2"><code data-testid="mfa-secret" className="rounded bg-muted px-2 py-1 font-mono text-sm tracking-wider">{grouped}</code><CopyButton text={setup.secret} /></div>
         </li>
         <li>Enter the 6-digit code the app shows.</li>
       </ol>

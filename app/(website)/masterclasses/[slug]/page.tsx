@@ -33,8 +33,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: e.seo.title || e.title,
     description: e.seo.description || e.summary,
     alternates: { canonical: `/masterclasses/${e.slug}` },
-    openGraph: { type: "website", title: e.title, description: e.summary, url: `/masterclasses/${e.slug}`, images: abs ? [{ url: abs, alt: e.title }] : undefined },
-    twitter: { card: abs ? "summary_large_image" : "summary", title: e.title, description: e.summary, images: abs ? [abs] : undefined },
+    // Without a flyer, omit `images` entirely so the site-wide default OG image still applies.
+    openGraph: { type: "website", title: e.title, description: e.summary, url: `/masterclasses/${e.slug}`, ...(abs ? { images: [{ url: abs, alt: e.title }] } : {}) },
+    ...(abs ? { twitter: { card: "summary_large_image", title: e.title, description: e.summary, images: [abs] } } : {}),
   };
 }
 

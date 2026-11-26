@@ -23,6 +23,8 @@ export async function sql<T = Record<string, unknown>>(query: string, params: un
 }
 
 export async function login(page: Page, email = OWNER.email, password = OWNER.password) {
+  // The login rate limiter is real; the suite signs in many times, so clear its counters for this account (local test DB only).
+  await sql("delete from rate_limits where key like 'login-%'");
   await page.goto("/login");
   await page.fill("#a-email", email);
   await page.fill("#a-password", password);
