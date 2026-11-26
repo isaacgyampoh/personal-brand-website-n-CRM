@@ -117,6 +117,15 @@ export const settingSchemas = {
     sms: z.boolean().default(false),
     ai: z.boolean().default(false),
   }),
+  documents: z.object({
+    receiptShowLogo: z.boolean().default(true),
+    receiptTitle: z.string().trim().max(40).default("Receipt"),
+    certificateHeading: z.string().trim().max(60).default("Certificate of completion"),
+    certificateStatement: z.string().trim().max(80).default("has successfully completed"),
+    certificateSignatoryName: z.string().trim().max(80).default(""),
+    certificateSignatoryTitle: z.string().trim().max(80).default(""),
+    certificateShowLogo: z.boolean().default(true),
+  }),
   onboarding: z.object({
     dismissed: z.boolean().default(false),
   }),

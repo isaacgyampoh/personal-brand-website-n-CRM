@@ -22,6 +22,13 @@ export default async function SettingsPage() {
       <Panel title="Social profiles"><SettingsForm settingKey="social" initial={s.social} fields={(["linkedin", "instagram", "x", "youtube", "tiktok", "facebook", "podcast"] as const).map((k) => ({ name: k, label: k[0].toUpperCase() + k.slice(1), type: "text" as const }))} /></Panel>
       <Panel title="Checkout"><SettingsForm settingKey="commerce" initial={s.commerce} fields={[
         { name: "holdMinutes", label: "Hold seats/slots during payment (minutes)", type: "text" }, { name: "allowDiscountCodes", label: "Allow discount codes", type: "checkbox" },
+        { name: "paymentProvider", label: "Payment provider for new checkouts", type: "select", options: [["paystack", "Paystack"], ["hubtel", "Hubtel"]], hint: "Checkout only works once that provider shows Connected in Integrations. Existing payments always stay with the provider that took them." },
+      ]} /></Panel>
+      <Panel title="Receipts & certificates"><SettingsForm settingKey="documents" initial={s.documents} fields={[
+        { name: "receiptTitle", label: "Receipt heading", type: "text" }, { name: "receiptShowLogo", label: "Show your logo on receipts", type: "checkbox", hint: "Uses the logo from Website → Design (uploaded to the media library)." },
+        { name: "certificateHeading", label: "Certificate heading", type: "text" }, { name: "certificateStatement", label: "Certificate wording", type: "text", hint: "e.g. “has successfully completed” or “attended”" },
+        { name: "certificateSignatoryName", label: "Signed by (name)", type: "text" }, { name: "certificateSignatoryTitle", label: "Signatory title", type: "text" },
+        { name: "certificateShowLogo", label: "Show your logo on certificates", type: "checkbox" },
       ]} /></Panel>
       <Panel title="Email sender"><SettingsForm settingKey="email" initial={s.email} fields={[
         { name: "fromName", label: "Sender name", type: "text" }, { name: "replyTo", label: "Reply-to address", type: "email" },

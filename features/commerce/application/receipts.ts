@@ -1,4 +1,5 @@
 import "server-only";
+import { brandLogoPng } from "@/features/settings/application/brand-logo";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { db, type Db } from "@/lib/database/pool";
 import { formatMoney } from "@/lib/money";
@@ -74,9 +75,17 @@ export async function receiptForOrder(orderId: string): Promise<ReceiptSnapshot 
 export async function renderReceiptPdf(orderId: string): Promise<{ number: string; bytes: Uint8Array } | null> {
   const r = await receiptForOrder(orderId);
   if (!r) return null;
-  const tz = (await loadSettings()).business.timezone;
+  const settings = await loadSettings();
+  const tz = settings.business.timezone;
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595, 842]);
+  const logo = settings.documents.receiptShowLogo ? await brandLogoPng() : null;
+  if (logo) {
+    const img = await pdf.embedPng(logo.png);
+    const h = 40;
+    const w = (logo.width / logo.height) * h;
+    page.drawImage(img, { x: 545 - w, y: 770, width: w, height: h });
+  }
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const ink = rgb(0.1, 0.1, 0.1);
@@ -92,7 +101,7 @@ export async function renderReceiptPdf(orderId: string): Promise<{ number: strin
   if (r.business.address) { text(r.business.address, 50, 9, font, grey); y -= 12; }
   if (r.business.email) { text(r.business.email, 50, 9, font, grey); y -= 12; }
   y -= 20;
-  text("RECEIPT", 50, 14, bold);
+  text(settings.documents.receiptTitle.toUpperCase(), 50, 14, bold);
   y -= 22;
   text(`Receipt number: ${r.number}`, 50); y -= 14;
   text(`Order reference: ${r.orderReference}`, 50); y -= 14;

@@ -3,8 +3,15 @@ import sharp from "sharp";
 import { db, closePool } from "@/lib/database/pool";
 import { cropMedia, cropRect, setFocalPoint, storageUsage, uploadMedia } from "@/features/media/application/media";
 import { storage } from "@/lib/storage";
+import { issueCertificate, renderCertificatePdf } from "@/features/academy/application/certificates";
+import { PDFDocument, PDFName, PDFDict } from "pdf-lib";
+import { makeEvent } from "../helpers";
 
-afterAll(() => closePool());
+afterAll(async () => {
+  await db.query("delete from settings where key = 'documents'");
+  await db.query("update settings set value = value - 'logoUrl' where key = 'brand'");
+  await closePool();
+});
 let actor: string;
 beforeAll(async () => {
   actor = (await db.one<{ id: string }>("insert into users (email, role) values ('media@example.com','owner') on conflict (email) do update set role='owner' returning id"))!.id;
@@ -42,5 +49,27 @@ describe("media focal point, cropping and usage", () => {
     const u = await storageUsage();
     expect(u.files).toBeGreaterThanOrEqual(2);
     expect(u.public_bytes).toBeGreaterThan(0);
+  });
+});
+
+describe("branded documents", () => {
+  async function imageCount(bytes: Uint8Array) {
+    const pdf = await PDFDocument.load(bytes);
+    const res = pdf.getPage(0).node.Resources();
+    const xo = res?.lookupMaybe(PDFName.of("XObject"), PDFDict);
+    return xo ? xo.keys().length : 0;
+  }
+  it("certificates use the configured wording and the media-library logo (never a remote URL)", async () => {
+    const logo = await sharp({ create: { width: 300, height: 100, channels: 3, background: "#123456" } }).png().toBuffer();
+    const { asset } = await uploadMedia({ bytes: logo, filename: "logo.png", visibility: "public", actorId: actor });
+    const contact = (await db.one<{ id: string }>("insert into contacts (full_name, email) values ('Cert Person', 'cert@example.com') returning id"))!.id;
+    await db.query(`insert into settings (key, value) values ('documents', $1) on conflict (key) do update set value = excluded.value`,
+      [JSON.stringify({ certificateHeading: "Certificate of attendance", certificateStatement: "attended", certificateSignatoryName: "Ama Owusu", certificateShowLogo: true })]);
+    const ev = await makeEvent({ capacity: 5, price: 0 });
+    const code = await issueCertificate({ contactId: contact, eventId: ev.id, recipientName: "Cert Person", title: "Brand Masterclass", email: "cert@example.com" });
+    await db.query(`insert into settings (key, value) values ('brand', $1) on conflict (key) do update set value = settings.value || excluded.value`, [JSON.stringify({ logoUrl: "https://evil.example.com/logo.png" })]);
+    expect(await imageCount((await renderCertificatePdf(code!))!)).toBe(0); // remote URLs are ignored
+    await db.query(`update settings set value = value || $1 where key = 'brand'`, [JSON.stringify({ logoUrl: `/media/${asset.storage_key}` })]);
+    expect(await imageCount((await renderCertificatePdf(code!))!)).toBe(1);
   });
 });

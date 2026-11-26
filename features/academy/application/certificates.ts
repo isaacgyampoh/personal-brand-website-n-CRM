@@ -1,4 +1,5 @@
 import "server-only";
+import { brandLogoPng } from "@/features/settings/application/brand-logo";
 import { randomBytes } from "node:crypto";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { db } from "@/lib/database/pool";
@@ -57,12 +58,26 @@ export async function renderCertificatePdf(code: string): Promise<Uint8Array | n
   };
   page.drawRectangle({ x: 24, y: 24, width: 794, height: 547, borderColor: accent, borderWidth: 1 });
   page.drawRectangle({ x: 32, y: 32, width: 778, height: 531, borderColor: accent, borderWidth: 0.5 });
-  center("CERTIFICATE OF COMPLETION", 470, 13, sans, accent);
+  const d = s.documents;
+  const logo = d.certificateShowLogo ? await brandLogoPng() : null;
+  if (logo) {
+    const img = await pdf.embedPng(logo.png);
+    const h = 44;
+    const w = (logo.width / logo.height) * h;
+    page.drawImage(img, { x: (842 - w) / 2, y: 495, width: w, height: h });
+  }
+  center(d.certificateHeading.toUpperCase(), 470, 13, sans, accent);
   center("This certifies that", 410, 16, serifItalic);
   center(c.recipient_name, 350, 40);
-  center("has successfully completed", 300, 16, serifItalic);
+  center(d.certificateStatement, 300, 16, serifItalic);
   center(c.title, 255, 24);
-  center(`${s.brand.name}${s.brand.professionalTitle ? ` - ${s.brand.professionalTitle}` : ""}`, 160, 14);
+  if (d.certificateSignatoryName) {
+    page.drawLine({ start: { x: 321, y: 186 }, end: { x: 521, y: 186 }, thickness: 0.5, color: ink });
+    center(d.certificateSignatoryName, 170, 13);
+    if (d.certificateSignatoryTitle) center(d.certificateSignatoryTitle, 156, 10, sans);
+  } else {
+    center(`${s.brand.name}${s.brand.professionalTitle ? ` - ${s.brand.professionalTitle}` : ""}`, 160, 14);
+  }
   center(`Issued ${formatDate(c.issued_at, s.business.timezone)}`, 135, 11, sans);
   center(`Verify at ${env().APP_URL}/certificates/verify?code=${c.code}`, 70, 9, sans, accent);
   return pdf.save();
