@@ -8,7 +8,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ token: str
   if (!v) return new Response("This link has expired.", { status: 403 });
   const { k, n } = JSON.parse(v) as { k: string; n: string | null };
   const asset = await db.one<{ mime_type: string }>("select mime_type from media_assets where storage_key = $1 and visibility = 'private'", [k]);
-  const body = await storage().get(k, "private");
+  const body = await (await storage()).get(k, "private");
   if (!body || !asset) return new Response("Not found", { status: 404 });
   return new Response(new Uint8Array(body), {
     headers: {

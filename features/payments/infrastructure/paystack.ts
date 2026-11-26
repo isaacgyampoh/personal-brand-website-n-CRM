@@ -9,7 +9,7 @@ import type { PaymentGateway, VerifiedTransaction, WebhookEvent } from "../domai
  *    secret key (header `x-paystack-signature`).
  *  - Success is only ever accepted after GET /transaction/verify/:reference.
  */
-export function createPaystackGateway(secretKey: string, fetchImpl: typeof fetch = fetch): PaymentGateway {
+export function createPaystackGateway(secretKey: string, fetchImpl: typeof fetch = fetch, opts: { channels?: string[] } = {}): PaymentGateway {
   const base = "https://api.paystack.co";
   const mode = secretKey.startsWith("sk_live_") ? "live" : "test";
 
@@ -29,11 +29,12 @@ export function createPaystackGateway(secretKey: string, fetchImpl: typeof fetch
   return {
     name: "paystack",
     mode,
+    supportsRefunds: true,
 
     async initialize({ reference, amountMinor, currency, email, callbackUrl, metadata }) {
       const data = await call<{ authorization_url: string; access_code: string }>("/transaction/initialize", {
         method: "POST",
-        body: JSON.stringify({ reference, amount: amountMinor, currency, email, callback_url: callbackUrl, metadata }),
+        body: JSON.stringify({ reference, amount: amountMinor, currency, email, callback_url: callbackUrl, metadata, ...(opts.channels?.length ? { channels: opts.channels } : {}) }),
       });
       return { authorizationUrl: data.authorization_url, accessCode: data.access_code ?? null };
     },
@@ -86,6 +87,12 @@ export function createPaystackGateway(secretKey: string, fetchImpl: typeof fetch
         body: JSON.stringify({ transaction: reference, amount: amountMinor, merchant_note: note.slice(0, 200) }),
       });
       return { providerRefundId: String(d.id), status: d.status };
+    },
+
+    async testConnection() {
+      // Lists one transaction: succeeds only with a valid secret key, has no side effects.
+      await call<unknown>("/transaction?perPage=1");
+      return `Paystack ${mode} key accepted`;
     },
 
     async fetchRefund(id) {

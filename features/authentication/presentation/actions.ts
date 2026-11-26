@@ -12,6 +12,7 @@ import { db } from "@/lib/database/pool";
 import { attachVerifiedUser } from "@/features/crm/application/contacts";
 import { UserError } from "@/lib/errors";
 import { safeNext } from "@/lib/auth/safe-next";
+import { completeMfaSignIn, pendingMfaUserId } from "@/lib/auth/mfa";
 
 const email = z.string().trim().toLowerCase().email("Enter a valid email address").max(200);
 
@@ -35,9 +36,15 @@ export async function loginAction(_: unknown, fd: FormData): Promise<ActionResul
       await audit({ actorLabel: input.email, action: "auth.login_failed", entityType: "user", ipHash: ip });
       throw new UserError(result.error);
     }
-    await attachVerifiedUser(result.userId);
-    await audit({ actorId: result.userId, action: "auth.login", entityType: "user", entityId: result.userId, ipHash: ip });
-    target = await landingFor(result.userId, safeNext(fd.get("next"), "") || null);
+    const nextParam = safeNext(fd.get("next"), "");
+    if (await pendingMfaUserId()) {
+      await audit({ actorId: result.userId, action: "auth.password_ok_mfa_pending", entityType: "user", entityId: result.userId, ipHash: ip });
+      target = `/login/mfa${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ""}`;
+    } else {
+      await attachVerifiedUser(result.userId);
+      await audit({ actorId: result.userId, action: "auth.login", entityType: "user", entityId: result.userId, ipHash: ip });
+      target = await landingFor(result.userId, nextParam || null);
+    }
   } catch (error) {
     return toActionError(error);
   }
@@ -68,9 +75,6 @@ export async function registerAction(_: unknown, fd: FormData): Promise<ActionRe
     const r = await authProvider().signUp(input);
     // Do not reveal whether an account exists.
     if (!r.ok && !/already exists/i.test(r.error)) throw new UserError(r.error);
-    if (r.ok && authProvider().name === "supabase") {
-      await db.query("insert into users (id, email, full_name) values ($1,$2,$3) on conflict do nothing", [r.userId, input.email, input.fullName]);
-    }
     return undefined;
   });
 }
@@ -102,4 +106,27 @@ export async function resetPasswordAction(_: unknown, fd: FormData): Promise<Act
 export async function logoutAction() {
   await authProvider().signOut();
   redirect("/login");
+}
+
+export async function mfaLoginAction(_: unknown, fd: FormData): Promise<ActionResult> {
+  let target: string;
+  try {
+    const code = z.string().trim().min(6, "Enter the 6-digit code").max(20).parse(fd.get("code"));
+    const ip = await ipHash();
+    const pending = await pendingMfaUserId();
+    if (!pending) throw new UserError("Your sign-in expired. Please sign in again.");
+    await rateLimit(`mfa:${pending}`, 6, 900);
+    await rateLimit(`mfa-ip:${ip}`, 20, 900);
+    const userId = await completeMfaSignIn(code);
+    if (!userId) {
+      await audit({ actorId: pending, action: "auth.mfa_failed", entityType: "user", entityId: pending, ipHash: ip });
+      throw new UserError("That code isn't valid. Check your authenticator app and try again.");
+    }
+    await attachVerifiedUser(userId);
+    await audit({ actorId: userId, action: "auth.login", entityType: "user", entityId: userId, ipHash: ip, data: { mfa: true } });
+    target = await landingFor(userId, safeNext(fd.get("next"), "") || null);
+  } catch (error) {
+    return toActionError(error);
+  }
+  redirect(target);
 }

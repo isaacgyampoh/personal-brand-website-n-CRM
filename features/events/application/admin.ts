@@ -16,6 +16,9 @@ import { requestRefund } from "@/features/commerce/application/refunds";
 import { issueCertificate } from "@/features/academy/application/certificates";
 import { sendRegistrationConfirmations } from "./registration";
 import { eventRepo } from "../infrastructure/repository";
+import { enqueue } from "@/lib/jobs/queue";
+import { zoomAvailable } from "@/features/integrations/application/zoom";
+import { googleConnected } from "@/features/integrations/application/google";
 
 export class EventAdminError extends UserError {}
 
@@ -157,7 +160,10 @@ export async function deleteTicket(id: string, actorId: string) {
 
 // ---------------- Access, sessions, resources ----------------
 export async function saveAccess(eventId: string, input: { provider: string; url: string; meetingId: string; passcode: string; instructions: string; opensMinutesBefore: number }, actorId: string) {
+  if (!["manual", "zoom", "google_meet", "none"].includes(input.provider)) throw new EventAdminError("Choose how attendees join.");
   if (input.url && !/^https:\/\//.test(input.url)) throw new EventAdminError("Meeting link must start with https://");
+  if (input.provider === "zoom" && !input.url && !(await zoomAvailable())) throw new EventAdminError("Zoom isn't connected yet. Connect it in Settings → Integrations, or paste a meeting link.");
+  if (input.provider === "google_meet" && !input.url && !(await googleConnected())) throw new EventAdminError("Google isn't connected yet. Connect it in Settings → Integrations, or paste a meeting link.");
   await db.query(
     `insert into event_access (event_id, meeting_provider, meeting_url, meeting_id, passcode, instructions, access_opens_minutes_before, updated_at)
      values ($1,$2,nullif($3,''),nullif($4,''),nullif($5,''),$6,$7, now())
@@ -166,6 +172,9 @@ export async function saveAccess(eventId: string, input: { provider: string; url
     [eventId, input.provider, input.url, input.meetingId, input.passcode, input.instructions, input.opensMinutesBefore],
   );
   await audit({ actorId, action: "event.access", entityType: "event", entityId: eventId });
+  if (input.provider === "zoom" || input.provider === "google_meet") {
+    await enqueue("meeting.sync_event", { eventId }, { idempotencyKey: `meeting:${eventId}:${Date.now()}` });
+  }
 }
 
 export async function addSessions(eventId: string, input: { title: string; startsAt: Date; durationMinutes: number; repeatWeeks: number }, actorId: string) {
@@ -249,6 +258,7 @@ export async function rescheduleEvent(id: string, startsAt: Date, endsAt: Date, 
     await audit({ actorId, action: "event.reschedule", entityType: "event", entityId: id, data: { from: e.starts_at, to: startsAt } }, t);
     return e;
   });
+  await enqueue("meeting.sync_event", { eventId: id }, { idempotencyKey: `meeting:${id}:resched:${startsAt.toISOString()}` });
   const ics = signValue(`event:${id}`, Math.floor(endsAt.getTime() / 1000) + 30 * 86400);
   for (const r of await confirmedAttendees(id)) {
     await enqueueEmail({
@@ -278,6 +288,7 @@ export async function cancelEvent(id: string, reason: string, actorId: string): 
     await audit({ actorId, action: "event.cancel", entityType: "event", entityId: id, data: { reason, registrations: regs.length, refunds: orders.length } }, t);
     return { event: e, regs, orders };
   });
+  await enqueue("meeting.sync_event", { eventId: id }, { idempotencyKey: `meeting:${id}:cancel` });
   for (const o of orders) {
     await requestRefund({ orderId: o.id, amountMinor: o.refundable, reason: `Event cancelled: ${event.title}`, actorId, idempotencyKey: `event-cancel:${id}:${o.id}` });
   }

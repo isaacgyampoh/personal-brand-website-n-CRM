@@ -3,7 +3,7 @@ import { requireStaffPage } from "@/lib/auth/session";
 import { loadSettings } from "@/features/settings/application/settings";
 import { resolveRange, growth } from "@/features/analytics/application/range";
 import { dashboardData } from "@/features/analytics/application/dashboard";
-import { integrations } from "@/lib/config/env";
+import { integrationStatuses } from "@/lib/integrations/store";
 import { formatMoney } from "@/lib/money";
 import { formatDateTime, formatInZone } from "@/lib/time";
 import { PageTitle, Panel, Stat, StatusBadge, LinkButton, Notice } from "@/components/dashboard/ui";
@@ -22,7 +22,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const d = await dashboardData(range, tz);
   const money = (m: number) => formatMoney(m, cur);
   const conv = d.visitors.visitors ? (d.counts.paid_orders / d.visitors.visitors) * 100 : null;
-  const int = integrations();
+  const int = await integrationStatuses();
+  const missing = [int.paystack !== "connected" && "Paystack payments", int.smtp !== "connected" && "email (SMTP)", int.r2 !== "connected" && "Cloudflare R2 storage"].filter(Boolean);
   const a = d.attention;
   const attention = [
     a.needs_attention && { href: "/admin/payments?status=needs_attention", text: `${a.needs_attention} order(s) need attention`, tone: "red" },
@@ -42,9 +43,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         actions={<RangeFilter base="/admin" current={range.key} from={sp.from} to={sp.to} />}
       />
       {sp.denied && <Notice tone="red">You don&apos;t have permission to open that area.</Notice>}
-      {(!int.payments || !int.smtp || !int.r2) && (
+      {missing.length > 0 && (
         <Notice>
-          Setup incomplete: {[!int.payments && "Paystack payments", !int.smtp && "email (SMTP)", !int.r2 && "Cloudflare R2 storage"].filter(Boolean).join(", ")} not configured.{" "}
+          Setup incomplete: {missing.join(", ")} not connected yet.{" "}
           <Link href="/admin/settings/integrations" className="font-medium underline">Review integrations</Link>
         </Notice>
       )}

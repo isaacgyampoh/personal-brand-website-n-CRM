@@ -1,6 +1,6 @@
 import "server-only";
 import { tx } from "@/lib/database/pool";
-import { paymentGateway } from "@/features/payments/application/gateway";
+import { paymentsReady } from "@/features/payments/application/gateway";
 import { PaymentsNotConfiguredError } from "@/features/payments/domain/gateway";
 import { CheckoutError, completeFreeOrderIfZero, createOrder, holdMinutes, startPayment } from "./checkout";
 
@@ -18,13 +18,14 @@ export type PurchaseOutcome = { kind: "fulfilled"; orderReference: string } | { 
 /** Checkout for courses and digital products. Price is read from the database. */
 export async function purchaseCatalogItem(req: PurchaseRequest): Promise<PurchaseOutcome> {
   const table = req.type === "course" ? "courses" : "products";
+  const ready = await paymentsReady();
   const result = await tx(async (t) => {
     const item = await t.one<{ id: string; title: string; price_minor: number; currency: string; status: string; visibility?: string }>(
       `select * from ${table} where slug = $1`,
       [req.slug],
     );
     if (!item || item.status !== "published" || item.visibility === "private") throw new CheckoutError("This item isn't available.");
-    if (item.price_minor > 0 && !req.discountCode && !paymentGateway()) throw new PaymentsNotConfiguredError();
+    if (item.price_minor > 0 && !req.discountCode && !ready) throw new PaymentsNotConfiguredError();
     const { order } = await createOrder(t, {
       customer: { email: req.buyer.email, fullName: req.buyer.fullName, phone: req.buyer.phone, consentMarketing: req.buyer.consentMarketing, consentSource: `${req.type}:${req.slug}` },
       userId: req.userId,
@@ -34,7 +35,7 @@ export async function purchaseCatalogItem(req: PurchaseRequest): Promise<Purchas
       expiresAt: new Date(Date.now() + (await holdMinutes()) * 60_000),
     });
     if (await completeFreeOrderIfZero(t, order)) return { kind: "fulfilled" as const, order };
-    if (!paymentGateway()) throw new PaymentsNotConfiguredError();
+    if (!ready) throw new PaymentsNotConfiguredError();
     return { kind: "pending" as const, order };
   });
   if (result.kind === "fulfilled") return { kind: "fulfilled", orderReference: result.order.reference };

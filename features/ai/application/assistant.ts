@@ -2,7 +2,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { db } from "@/lib/database/pool";
-import { env, integrations } from "@/lib/config/env";
+import { getIntegration } from "@/lib/integrations/store";
 import { UserError } from "@/lib/errors";
 import { loadSettings } from "@/features/settings/application/settings";
 
@@ -47,8 +47,22 @@ const inputSchema = z.object({
   tone: z.enum(["warm", "authoritative", "conversational", "inspiring", "concise"]).default("warm"),
 });
 
-export function aiAvailable(): boolean {
-  return integrations().ai;
+/** AI is optional: available only when enabled and configured in Settings → Integrations. */
+export async function aiAvailable(): Promise<boolean> {
+  return (await getIntegration("ai")).usable;
+}
+
+async function aiConfig() {
+  const c = await getIntegration("ai");
+  const limit = Number.parseInt(c.values.monthlyLimit, 10);
+  return { usable: c.usable, apiKey: c.values.apiKey, model: c.values.model || "claude-opus-5-5", limit: Number.isFinite(limit) && limit > 0 ? limit : 300 };
+}
+
+/** Minimal authenticated request used by the Integration Centre "Test connection" button. */
+export async function testAiConnection(apiKey: string, model: string): Promise<string> {
+  const c = new Anthropic({ apiKey, maxRetries: 0, timeout: 30_000 });
+  const m = await c.models.retrieve(model);
+  return `API key accepted; model ${m.id} available`;
 }
 
 async function monthlyUsage(): Promise<number> {
@@ -57,19 +71,21 @@ async function monthlyUsage(): Promise<number> {
 }
 
 export async function aiUsageSummary() {
-  return { used: await monthlyUsage(), limit: env().AI_MONTHLY_REQUEST_LIMIT, model: env().AI_MODEL, enabled: aiAvailable() };
+  const c = await aiConfig();
+  return { used: await monthlyUsage(), limit: c.limit, model: c.model, enabled: c.usable };
 }
 
-let client: Anthropic | undefined;
+let client: { key: string; sdk: Anthropic } | undefined;
 
 export async function generateDraft(raw: unknown, userId: string): Promise<{ text: string; model: string }> {
-  if (!aiAvailable()) throw new AiError("The AI assistant is not enabled. Set AI_ENABLED=true and ANTHROPIC_API_KEY to use it.");
+  const cfg = await aiConfig();
+  if (!cfg.usable) throw new AiError("The AI assistant is not enabled. Configure it in Settings → Integrations.");
   const input = inputSchema.parse(raw);
-  const limit = env().AI_MONTHLY_REQUEST_LIMIT;
-  if ((await monthlyUsage()) >= limit) throw new AiError(`This month's AI request limit (${limit}) has been reached. It resets on the 1st, or raise AI_MONTHLY_REQUEST_LIMIT.`);
+  const limit = cfg.limit;
+  if ((await monthlyUsage()) >= limit) throw new AiError(`This month's AI request limit (${limit}) has been reached. It resets on the 1st, or raise the limit in Settings → Integrations.`);
 
   const s = await loadSettings();
-  client ??= new Anthropic({ apiKey: env().ANTHROPIC_API_KEY, maxRetries: 2, timeout: 90_000 });
+  if (client?.key !== cfg.apiKey) client = { key: cfg.apiKey, sdk: new Anthropic({ apiKey: cfg.apiKey, maxRetries: 2, timeout: 90_000 }) };
 
   // Stable system prompt (cache-friendly); task details go in the user turn.
   const system = [
@@ -82,8 +98,8 @@ export async function generateDraft(raw: unknown, userId: string): Promise<{ tex
 
   let response: Anthropic.Beta.BetaMessage;
   try {
-    response = await client.beta.messages.create({
-      model: env().AI_MODEL,
+    response = await client.sdk.beta.messages.create({
+      model: cfg.model,
       max_tokens: 4000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
@@ -93,7 +109,7 @@ export async function generateDraft(raw: unknown, userId: string): Promise<{ tex
     });
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) throw new AiError("The AI service is busy. Please try again in a minute.");
-    if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) throw new AiError("The AI service rejected the API key. Check ANTHROPIC_API_KEY.");
+    if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) throw new AiError("The AI service rejected the API key. Check the key in Settings → Integrations.");
     if (error instanceof Anthropic.BadRequestError) { console.error("[ai] bad request", error.message); throw new AiError("The AI request was rejected. Try a shorter or different brief."); }
     if (error instanceof Anthropic.APIConnectionError) throw new AiError("Couldn't reach the AI service. Check the server's internet connection.");
     if (error instanceof Anthropic.APIError) { console.error("[ai]", error.status, error.message); throw new AiError("The AI service had a problem. Please try again."); }

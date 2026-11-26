@@ -14,6 +14,10 @@ export function fakeGateway() {
   const gw: PaymentGateway = {
     name: "paystack",
     mode: "test",
+    supportsRefunds: true,
+    async testConnection() {
+      return "fake gateway";
+    },
     async initialize({ reference }) {
       transactions.set(reference, { status: "pending" });
       return { authorizationUrl: `https://checkout.example/${reference}`, accessCode: "x" };

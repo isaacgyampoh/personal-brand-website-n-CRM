@@ -1,7 +1,7 @@
 import { requireStaffPage } from "@/lib/auth/session";
 import { listMedia, mediaUrl } from "@/features/media/application/media";
 import { deleteMediaAction, updateMediaAction } from "@/features/media/presentation/actions";
-import { integrations } from "@/lib/config/env";
+import { getIntegration } from "@/lib/integrations/store";
 import { PageTitle, Notice, Empty, Pager } from "@/components/dashboard/ui";
 import { ActionButton, ActionForm, Field, Submit } from "@/components/dashboard/forms";
 import { UploadDropzone } from "@/components/dashboard/upload-dropzone";
@@ -17,7 +17,7 @@ export default async function MediaPage({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-6">
       <PageTitle title="Media library" description="Images are converted to WebP, resized, and stripped of location metadata. Private files are only ever served through short-lived signed links." />
-      {!integrations().r2 && <Notice>Using local development storage. Configure Cloudflare R2 before production — large files never go into the database.</Notice>}
+      {!(await getIntegration("r2")).usable && <Notice>Using local server storage. Connect Cloudflare R2 in Settings → Integrations before launch — large files never go into the database.</Notice>}
       <UploadDropzone />
       <form className="flex flex-wrap gap-2">
         <input name="q" defaultValue={sp.q} placeholder="Search filename or alt text" className="h-9 rounded-lg border bg-background px-3 text-sm" aria-label="Search" />

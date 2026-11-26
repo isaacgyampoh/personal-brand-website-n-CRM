@@ -4,11 +4,10 @@ export type AuthResult = { ok: true; userId: string } | { ok: false; error: stri
 
 /**
  * Port for identity providers. Business code depends only on this interface,
- * so Supabase Auth can be replaced (e.g. on self-hosted infrastructure) by
- * swapping the adapter — see docs/MIGRATION.md.
+ * so the authentication implementation can be swapped without touching it.
  */
 export interface AuthProvider {
-  readonly name: "local" | "supabase";
+  readonly name: "local";
   /** Creates the identity. Caller ensures a matching row exists in `users`. */
   signUp(input: { email: string; password: string; fullName: string }): Promise<AuthResult & { needsVerification?: boolean }>;
   signIn(input: { email: string; password: string }): Promise<AuthResult>;
@@ -16,7 +15,7 @@ export interface AuthProvider {
   /** Identity id from the current request's cookies, or null. */
   currentUserId(): Promise<string | null>;
   requestPasswordReset(email: string): Promise<void>;
-  /** Completes a reset. Local: token from email. Supabase: user is already in a recovery session. */
+  /** Completes a password reset using the emailed single-use token. */
   completePasswordReset(input: { token?: string; password: string }): Promise<AuthResult>;
   sendVerification(userId: string, email: string): Promise<void>;
   verifyEmail(token: string): Promise<AuthResult>;

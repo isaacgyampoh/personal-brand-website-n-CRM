@@ -2,7 +2,8 @@ import Link from "next/link";
 import { requireStaffPage } from "@/lib/auth/session";
 import { db } from "@/lib/database/pool";
 import { loadSetting } from "@/features/settings/application/settings";
-import { integrations } from "@/lib/config/env";
+import { getIntegration } from "@/lib/integrations/store";
+import { paymentsReady } from "@/features/payments/application/gateway";
 import { formatMoney } from "@/lib/money";
 import { formatInZone } from "@/lib/time";
 import { PageTitle, Table, Td, StatusBadge, LinkButton, Empty, Pager, Notice } from "@/components/dashboard/ui";
@@ -26,7 +27,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
        from orders o ${where.length ? `where ${where.join(" and ")}` : ""} order by o.created_at desc limit 51 offset ${(page - 1) * 50}`,
     params,
   );
-  const int = integrations();
+  const pay = await getIntegration("paystack");
+  const ready = await paymentsReady();
   return (
     <div>
       <PageTitle title="Payments & orders" actions={<>
@@ -34,8 +36,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         {user.permissions.has("finance:export") && <LinkButton href="/api/admin/export/ledger" variant="outline">Export ledger</LinkButton>}
         {user.permissions.has("finance:export") && <LinkButton href="/api/admin/export/orders" variant="outline">Export orders</LinkButton>}
       </>} />
-      {!int.payments && <div className="mb-4"><Notice>Paystack is not configured — online checkout is disabled. Free registrations and manual payments still work.</Notice></div>}
-      {int.payments && !int.paymentsLive && <div className="mb-4"><Notice tone="blue">Paystack TEST mode. No real money moves.</Notice></div>}
+      {!ready && <div className="mb-4"><Notice>Online checkout is off until a payment provider is connected and verified in Settings → Integrations. Free registrations and manual payments still work.</Notice></div>}
+      {ready && pay.mode === "test" && <div className="mb-4"><Notice tone="blue">Paystack TEST mode. No real money moves.</Notice></div>}
       <form className="mb-4 flex flex-wrap gap-2">
         <input name="q" defaultValue={sp.q} placeholder="Reference, email or name" className="h-9 rounded-lg border bg-background px-3 text-sm" aria-label="Search" />
         <select name="status" defaultValue={sp.status ?? ""} className="h-9 rounded-lg border bg-background px-2 text-sm" aria-label="Status"><option value="">All</option>{STATUSES.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}</select>

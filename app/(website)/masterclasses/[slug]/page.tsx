@@ -5,7 +5,7 @@ import { getPublicEvent } from "@/features/website/application/public-queries";
 import { eventRepo } from "@/features/events/infrastructure/repository";
 import { publicTickets } from "@/features/events/application/registration";
 import { registrationState } from "@/features/events/domain/rules";
-import { integrations } from "@/lib/config/env";
+import { paymentsReady } from "@/features/payments/application/gateway";
 import { formatInZone } from "@/lib/time";
 import { RichText } from "@/components/shared/rich-text";
 import { EventRegistration } from "@/components/website/event-registration";
@@ -38,7 +38,7 @@ export default async function EventPage({ params }: Props) {
   const time = `${formatInZone(start, e.timezone, { hour: "2-digit", minute: "2-digit" })} – ${formatInZone(end, e.timezone, { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}`;
   const onSale = tickets.filter((t) => t.onSale);
   const soldOut = onSale.length > 0 && onSale.every((t) => t.remaining === 0);
-  const paymentsReady = integrations().payments;
+  const canPay = await paymentsReady();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -148,7 +148,7 @@ export default async function EventPage({ params }: Props) {
             ) : (
               <EventRegistration
                 eventSlug={e.slug}
-                paymentsReady={paymentsReady}
+                paymentsReady={canPay}
                 tickets={onSale.map((t) => ({ id: t.id, name: t.name, description: t.description, priceMinor: t.price_minor, currency: t.currency, remaining: t.remaining, maxPerOrder: t.max_per_order, salesEndAt: t.sales_end_at ? new Date(t.sales_end_at).toISOString() : null }))}
               />
             )}

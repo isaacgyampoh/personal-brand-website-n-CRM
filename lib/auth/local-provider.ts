@@ -12,11 +12,18 @@ const SESSION_DAYS = 14;
 const MAX_FAILED = 8;
 const LOCK_MINUTES = 15;
 
+/**
+ * Creates a session. Accounts with MFA enabled get a *pending* session that
+ * grants nothing until the second factor is verified (lib/auth/mfa.ts).
+ * A completed sign-in counts as a recent authentication.
+ */
 async function createSession(userId: string): Promise<void> {
   const token = randomToken(32);
   const expires = new Date(Date.now() + SESSION_DAYS * 86400_000);
   await db.query(
-    `insert into sessions (user_id, token_hash, expires_at) values ($1, $2, $3)`,
+    `insert into sessions (user_id, token_hash, expires_at, mfa_pending, reauthenticated_at)
+     select $1, $2, $3, u.mfa_enabled_at is not null, case when u.mfa_enabled_at is null then now() end
+       from users u where u.id = $1`,
     [userId, hashToken(token), expires],
   );
   (await cookies()).set(SESSION_COOKIE, token, {
@@ -108,7 +115,7 @@ export const localProvider: AuthProvider = {
     if (!token || token.length > 100) return null;
     const row = await db.one<{ user_id: string }>(
       `select s.user_id from sessions s join users u on u.id = s.user_id
-       where s.token_hash = $1 and s.revoked_at is null and s.expires_at > now() and u.status = 'active'`,
+       where s.token_hash = $1 and s.revoked_at is null and s.expires_at > now() and not s.mfa_pending and u.status = 'active'`,
       [hashToken(token)],
     );
     return row?.user_id ?? null;

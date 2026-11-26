@@ -13,7 +13,7 @@ import { bookingRepo } from "@/features/bookings/infrastructure/repository";
 /** Verifies stale 'initialized' payments with the provider (missed webhooks, closed tabs). */
 export async function reconcilePendingPayments(): Promise<{ checked: number; errors: number }> {
   const rows = await db.query<{ provider_reference: string }>(
-    `select provider_reference from payments where provider = 'paystack' and status = 'initialized'
+    `select provider_reference from payments where provider in ('paystack','hubtel') and status = 'initialized'
        and created_at < now() - interval '3 minutes' and created_at > now() - interval '72 hours'
      order by created_at limit 25`,
   );

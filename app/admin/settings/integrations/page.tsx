@@ -1,46 +1,55 @@
 import { requireStaffPage } from "@/lib/auth/session";
-import { env, integrations } from "@/lib/config/env";
-import { db } from "@/lib/database/pool";
-import { disconnectIntegrationAction } from "@/features/settings/presentation/actions";
-import { PageTitle, Panel, StatusBadge, Notice, LinkButton } from "@/components/dashboard/ui";
-import { ActionButton } from "@/components/dashboard/forms";
+import { hasRecentAuth } from "@/lib/auth/reauth";
+import { env } from "@/lib/config/env";
+import { vaultAvailable } from "@/lib/security/vault";
+import { INTEGRATIONS } from "@/lib/integrations/definitions";
+import { getIntegration, listIntegrationViews } from "@/lib/integrations/store";
+import { PageTitle, Notice } from "@/components/dashboard/ui";
+import { IntegrationCard, type CardView } from "@/components/dashboard/integration-card";
+import { ReauthForm } from "@/components/dashboard/reauth-form";
+import { listGoogleCalendars } from "@/features/integrations/application/google";
 
 export const metadata = { title: "Integrations" };
+export const dynamic = "force-dynamic";
 
-export default async function IntegrationsPage({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
-  await requireStaffPage("settings:manage");
+/**
+ * Integration Centre. Credentials are stored encrypted (AES-256-GCM, master
+ * key outside the database). The browser only ever receives masked hints.
+ */
+export default async function IntegrationsPage({ searchParams }: { searchParams: Promise<{ google?: string; reauth?: string }> }) {
+  const user = await requireStaffPage("settings:manage", "/admin/settings/integrations");
   const sp = await searchParams;
-  const i = integrations();
-  const e = env();
-  const gcal = await db.one<{ status: string }>("select status from integrations where provider = 'google_calendar'");
-  const rows: { name: string; ok: boolean; detail: string; verified: string; action?: React.ReactNode }[] = [
-    { name: "Database (PostgreSQL)", ok: true, detail: "Connected", verified: "Tested" },
-    { name: "Authentication", ok: true, detail: e.AUTH_PROVIDER === "supabase" ? "Supabase Auth" : "Built-in (local) auth", verified: e.AUTH_PROVIDER === "supabase" ? "Not yet verified against a live Supabase project" : "Tested" },
-    { name: "Paystack payments", ok: i.payments, detail: i.payments ? (i.paymentsLive ? "LIVE mode" : "Test mode") : "Set PAYSTACK_SECRET_KEY / PAYSTACK_PUBLIC_KEY", verified: "Adapter unit-tested; live API calls not yet verified" },
-    { name: "Email (SMTP)", ok: i.smtp, detail: i.smtp ? `${e.SMTP_HOST} as ${e.SMTP_FROM}` : "Set SMTP_HOST, SMTP_FROM (and credentials)", verified: i.smtp ? "Send a test from Email templates" : "Development mode writes emails to disk" },
-    { name: "Cloudflare R2 storage", ok: i.r2, detail: i.r2 ? `${e.R2_PUBLIC_BUCKET} / ${e.R2_PRIVATE_BUCKET}` : "Using local development storage", verified: "Not yet verified" },
-    { name: "mNotify SMS (optional)", ok: i.sms, detail: i.sms ? `Sender ${e.MNOTIFY_SENDER_ID}` : "Not configured", verified: "Not yet verified" },
-    { name: "Google Calendar sync (optional)", ok: gcal?.status === "connected", detail: !i.googleCalendar ? "Set GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET" : gcal?.status === "connected" ? "Connected — confirmed bookings appear in your calendar" : "Ready to connect", verified: "Not yet verified",
-      action: i.googleCalendar ? (gcal?.status === "connected" ? <ActionButton action={disconnectIntegrationAction} fields={{ provider: "google_calendar" }} label="Disconnect" /> : <LinkButton href="/api/integrations/google/connect" size="sm">Connect Google Calendar</LinkButton>) : undefined },
-    { name: "Zoom (optional)", ok: i.zoom, detail: i.zoom ? "Credentials present" : "Paste Zoom links per event/service (no API needed)", verified: "Automatic meeting creation not implemented; manual links supported" },
-    { name: "AI assistant (optional)", ok: i.ai, detail: i.ai ? `Model ${e.AI_MODEL}` : "Disabled — set AI_ENABLED=true and ANTHROPIC_API_KEY", verified: "Not yet verified" },
-  ];
+  const [views, recent, google] = await Promise.all([listIntegrationViews(), hasRecentAuth(), getIntegration("google")]);
+  const app = env().APP_URL;
+  const calendars = google.all.refreshToken ? await listGoogleCalendars().catch(() => null) : null;
+  const cards: CardView[] = views.map((v) => {
+    const d = INTEGRATIONS.find((x) => x.provider === v.provider)!;
+    const { urls, ...def } = d;
+    return {
+      def, urls: urls ? urls(app) : [], enabled: v.enabled, mode: v.mode, status: v.status,
+      settings: Object.fromEntries(Object.entries(v.settings).map(([k, x]) => [k, Array.isArray(x) ? x.join(",") : String(x ?? "")])),
+      secretHints: v.secretHints, lastSuccessAt: v.lastSuccessAt, lastFailureAt: v.lastFailureAt, lastError: v.lastError,
+      googleConnected: d.provider === "google" ? Boolean(google.all.refreshToken) : undefined,
+      calendars: d.provider === "google" ? calendars : undefined,
+    };
+  });
+  const groups = [...new Set(INTEGRATIONS.map((d) => d.category))];
   return (
     <div className="max-w-4xl space-y-6">
-      <PageTitle title="Integrations" description="Credentials live in server environment variables, never in the browser or database (except encrypted OAuth tokens)." back={{ href: "/admin/settings", label: "Settings" }} />
-      {sp.google === "connected" && <Notice tone="green">Google Calendar connected.</Notice>}
-      {sp.google === "error" && <Notice tone="red">Google Calendar connection failed. Try again.</Notice>}
-      <Panel>
-        <ul className="divide-y">
-          {rows.map((r) => (
-            <li key={r.name} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div><p className="text-sm font-medium">{r.name}</p><p className="text-xs text-muted-foreground">{r.detail}</p><p className="text-xs text-muted-foreground">Verification: {r.verified}</p></div>
-              <div className="flex items-center gap-2">{r.action}<StatusBadge status={r.ok ? "active" : "pending"} tone={r.ok ? "green" : "amber"} /></div>
-            </li>
-          ))}
-        </ul>
-      </Panel>
-      <Panel title="Paystack webhook"><p className="text-sm">Set this URL in your Paystack dashboard (Settings → API Keys & Webhooks):</p><p className="mt-2 font-mono text-sm">{e.APP_URL}/api/webhooks/paystack</p><p className="mt-2 text-xs text-muted-foreground">Callback URL: {e.APP_URL}/checkout/complete</p></Panel>
+      <PageTitle title="Integrations" description="Connect payments, email, storage, calendars and meetings. Everything optional can stay off — the website keeps working." back={{ href: "/admin/settings", label: "Settings" }} />
+      {!vaultAvailable() && <Notice tone="red">The server&apos;s credential encryption key is not set (CREDENTIALS_MASTER_KEYS). Integrations can&apos;t be saved until your server administrator adds it.</Notice>}
+      {sp.google === "connected" && <Notice tone="green">Google account connected. Choose the calendar below and run Test connection.</Notice>}
+      {sp.google === "error" && <Notice tone="red">Google connection failed. Check the client ID/secret and the authorised redirect URI, then try again.</Notice>}
+      {(!recent || sp.reauth) && <ReauthForm mfa={user.mfaEnabled} />}
+      <p className="text-sm text-muted-foreground">
+        Status shows <strong>Connected</strong> only after a real connection test passes with the current settings. Saved secrets are never shown again — only the last characters.
+      </p>
+      {groups.map((g) => (
+        <div key={g} className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{g}</h2>
+          {cards.filter((c) => c.def.category === g).map((c) => <IntegrationCard key={c.def.provider} v={c} canGoLive={env().PAYMENTS_LIVE_APPROVED} />)}
+        </div>
+      ))}
     </div>
   );
 }

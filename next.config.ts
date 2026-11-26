@@ -6,10 +6,6 @@ import type { NextConfig } from "next";
  * `unstable_cache` + tags and invalidated on publish (see lib/cache.ts), so
  * publishing never requires a redeploy.
  */
-const r2PublicHost = process.env.R2_PUBLIC_BASE_URL
-  ? new URL(process.env.R2_PUBLIC_BASE_URL).hostname
-  : undefined;
-
 const nextConfig: NextConfig = {
   cacheComponents: false,
   output: "standalone",
@@ -17,7 +13,6 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["pg", "sharp", "nodemailer", "exceljs"],
   images: {
     formats: ["image/avif", "image/webp"],
-    remotePatterns: r2PublicHost ? [{ protocol: "https", hostname: r2PublicHost }] : [],
   },
   experimental: {
     serverActions: { bodySizeLimit: "2mb" },

@@ -76,7 +76,13 @@ export const bookingRepo = {
         where e.status = 'published' and tstzrange(coalesce(s.starts_at, e.starts_at), coalesce(s.ends_at, e.ends_at)) && tstzrange($1, $2)`,
       [from, to],
     );
+    // Busy time imported from the owner's Google Calendar (advisory; refreshed by the worker).
+    const external = await t.query<{ starts_at: Date; ends_at: Date }>(
+      "select starts_at, ends_at from external_busy where tstzrange(starts_at, ends_at) && tstzrange($1, $2)",
+      [from, to],
+    );
     return [
+      ...external.map((x) => ({ start: x.starts_at, end: x.ends_at, slotGroup: "external", serviceId: null })),
       ...appts.map((a) => ({ start: a.lower, end: a.upper, slotGroup: a.slot_group, serviceId: a.service_id })),
       ...events.map((e) => ({ start: e.starts_at, end: e.ends_at, slotGroup: `event:${e.id}`, serviceId: null })),
     ];

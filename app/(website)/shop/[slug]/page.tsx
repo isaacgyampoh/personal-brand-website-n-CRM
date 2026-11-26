@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublicProducts } from "@/features/website/application/public-queries";
-import { integrations } from "@/lib/config/env";
+import { paymentsReady } from "@/features/payments/application/gateway";
 import { RichText } from "@/components/shared/rich-text";
 import { PurchasePanel } from "@/components/website/purchase-panel";
 import { priceLabel } from "@/components/website/cards";
@@ -37,7 +37,7 @@ export default async function ProductPage({ params }: Props) {
           {p.summary && <p className="lede mt-6">{p.summary}</p>}
           <div className="mt-10"><RichText doc={p.description} /></div>
           <div className="card-frame mt-12 p-7 md:p-8">
-            <PurchasePanel type="product" slug={p.slug} priceLabel={p.isLeadMagnet ? "Free" : priceLabel(p.priceMinor, p.currency)} free={p.priceMinor === 0} paymentsReady={integrations().payments} cta={p.priceMinor === 0 ? "Send me the download" : undefined} />
+            <PurchasePanel type="product" slug={p.slug} priceLabel={p.isLeadMagnet ? "Free" : priceLabel(p.priceMinor, p.currency)} free={p.priceMinor === 0} paymentsReady={await paymentsReady()} cta={p.priceMinor === 0 ? "Send me the download" : undefined} />
           </div>
         </div>
       </div>

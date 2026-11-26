@@ -1,21 +1,10 @@
 -- Foundation: extensions, helpers, identity, settings, audit, jobs, media.
--- Portable PostgreSQL (>= 15). Runs on Supabase and on self-hosted Postgres.
+-- Standard PostgreSQL (>= 15).
 
 create extension if not exists citext;
 create extension if not exists btree_gist;
 create extension if not exists pgcrypto;
 
--- Supabase API roles. They exist on Supabase; created here (NOLOGIN) on plain
--- Postgres so RLS/grant statements are portable.
-do $$
-begin
-  if not exists (select 1 from pg_roles where rolname = 'anon') then
-    create role anon nologin;
-  end if;
-  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
-    create role authenticated nologin;
-  end if;
-end $$;
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -47,8 +36,7 @@ create trigger settings_updated before update on settings
   for each row execute function set_updated_at();
 
 -- ---------------------------------------------------------------------------
--- Identity. users.id equals the Supabase Auth user id when AUTH_PROVIDER=supabase.
--- No FK to auth.users, so the schema stays portable.
+-- Identity (built-in authentication: scrypt password hashes + database sessions).
 -- ---------------------------------------------------------------------------
 create table users (
   id uuid primary key default gen_random_uuid(),

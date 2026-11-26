@@ -11,7 +11,7 @@ import { enqueue } from "@/lib/jobs/queue";
 import { loadSetting } from "@/features/settings/application/settings";
 import { logActivity, upsertContact } from "@/features/crm/application/contacts";
 import { enqueueEmail } from "@/features/notifications/application/send";
-import { paymentGateway } from "@/features/payments/application/gateway";
+import { paymentsReady } from "@/features/payments/application/gateway";
 import { PaymentsNotConfiguredError } from "@/features/payments/domain/gateway";
 import { completeFreeOrderIfZero, createOrder, holdMinutes, startPayment } from "@/features/commerce/application/checkout";
 import { requestRefund } from "@/features/commerce/application/refunds";
@@ -87,7 +87,7 @@ export async function createBooking(req: BookingRequest): Promise<BookingOutcome
     throw new BookingError("That time is no longer available. Please choose another time.");
   }
   const paid = service.price_minor > 0;
-  if (paid && !paymentGateway()) throw new PaymentsNotConfiguredError();
+  if (paid && !(await paymentsReady())) throw new PaymentsNotConfiguredError();
 
   const customerTz = req.customer.timezone && isValidTimeZone(req.customer.timezone) ? req.customer.timezone : tz;
   const manageToken = randomToken(24);

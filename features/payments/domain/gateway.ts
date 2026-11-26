@@ -21,15 +21,22 @@ export type WebhookEvent = {
   payload: unknown;
 };
 
+export type ProviderName = "paystack" | "hubtel";
+
 export interface PaymentGateway {
-  readonly name: "paystack";
+  readonly name: ProviderName;
   readonly mode: "test" | "live";
+  /** False when the provider has no refund API (refunds are then completed in the provider's dashboard). */
+  readonly supportsRefunds: boolean;
   initialize(input: {
     reference: string;
     amountMinor: number;
     currency: string;
     email: string;
     callbackUrl: string;
+    returnUrl: string;
+    cancelUrl: string;
+    description: string;
     metadata: Record<string, unknown>;
   }): Promise<{ authorizationUrl: string; accessCode: string | null }>;
   verify(reference: string): Promise<VerifiedTransaction>;
@@ -37,10 +44,12 @@ export interface PaymentGateway {
   parseWebhook(rawBody: string): WebhookEvent;
   refund(input: { reference: string; amountMinor: number; note: string }): Promise<{ providerRefundId: string; status: string }>;
   fetchRefund(providerRefundId: string): Promise<{ status: "pending" | "processing" | "processed" | "failed"; raw: unknown }>;
+  /** Cheap authenticated call proving the credentials work. Throws with a readable message on failure. */
+  testConnection(): Promise<string>;
 }
 
 export class PaymentsNotConfiguredError extends UserError {
   constructor() {
-    super("Online payments are not configured yet. Please contact us to complete your booking.");
+    super("Online payment isn't available right now. Please contact us to complete your booking.");
   }
 }

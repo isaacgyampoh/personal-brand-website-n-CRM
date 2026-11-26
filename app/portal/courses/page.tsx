@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/session";
 import { myCourses } from "@/features/portal/application/portal";
-import { storage } from "@/lib/storage";
+import { publicMediaUrl } from "@/lib/storage";
 
 export const metadata = { title: "Courses" };
 
@@ -19,7 +19,7 @@ export default async function MyCourses() {
                 <div className="img-frame aspect-[4/3]">
                   {c.cover_key ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={storage().publicUrl(c.cover_key)} alt="" className="absolute inset-0 size-full object-cover" />
+                    <img src={publicMediaUrl(c.cover_key)} alt="" className="absolute inset-0 size-full object-cover" />
                   ) : <div className="cover-type absolute inset-0 flex items-end p-6"><span className="font-display text-2xl">{c.title}</span></div>}
                 </div>
                 <p className="display-sm mt-4">{c.title}</p>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
-  forgotPasswordAction, loginAction, magicLinkAction, registerAction, resetPasswordAction,
+  forgotPasswordAction, loginAction, magicLinkAction, mfaLoginAction, registerAction, resetPasswordAction,
 } from "@/features/authentication/presentation/actions";
 import type { ActionResult } from "@/lib/actions";
 
@@ -109,6 +109,24 @@ export function ResetForm({ token }: { token?: string }) {
       <Field name="confirm" label="Confirm new password" type="password" autoComplete="new-password" />
       <Alert state={state} />
       <button className="btn btn-primary w-full" disabled={pending}>{pending ? "Saving…" : "Save password"}</button>
+    </form>
+  );
+}
+
+export function MfaForm({ next }: { next: string }) {
+  const [state, action, pending] = useActionState(mfaLoginAction, null);
+  return (
+    <form action={action} className="space-y-5">
+      <h1 className="display-md">Two-factor sign-in</h1>
+      <p className="text-sm text-[var(--muted-ink)]">Enter the 6-digit code from your authenticator app, or one of your recovery codes.</p>
+      <input type="hidden" name="next" value={next} />
+      <div>
+        <label htmlFor="a-code" className="field-label">Code</label>
+        <input id="a-code" name="code" inputMode="numeric" autoComplete="one-time-code" autoFocus required maxLength={20} className="field tracking-widest" />
+      </div>
+      <Alert state={state} />
+      <button className="btn btn-primary w-full" disabled={pending}>{pending ? "Checking…" : "Verify"}</button>
+      <p className="text-sm"><Link href="/login" className="underline-offset-4 hover:underline">Start again</Link></p>
     </form>
   );
 }

@@ -34,7 +34,9 @@ export const ADMIN_NAV: NavGroup[] = [
     { href: "/admin/ai", label: "AI assistant", icon: "Sparkles", permission: "ai:use" },
   ] },
   { label: "System", items: [
-    { href: "/admin/settings", label: "Settings", icon: "Settings", permission: "settings:manage" },
+    { href: "/admin/settings", label: "Business settings", icon: "Settings", permission: "settings:manage" },
+    { href: "/admin/settings/integrations", label: "Integrations", icon: "Plug", permission: "settings:manage" },
+    { href: "/admin/security", label: "Security", icon: "ShieldCheck", permission: "dashboard:view" },
     { href: "/admin/system", label: "Jobs & logs", icon: "Activity", permission: "jobs:manage" },
   ] },
 ];

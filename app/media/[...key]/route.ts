@@ -10,7 +10,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ key: strin
     [key],
   );
   if (!asset) return new Response("Not found", { status: 404 });
-  const body = await storage().get(key, "public");
+  const body = await (await storage()).get(key, "public");
   if (!body) return new Response("Not found", { status: 404 });
   return new Response(new Uint8Array(body), {
     headers: { "content-type": key.endsWith(".webp") ? "image/webp" : asset.mime_type, "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" },

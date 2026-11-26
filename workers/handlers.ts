@@ -6,7 +6,8 @@ import { deliverEmail, deliverSms } from "@/features/notifications/application/s
 import { processWebhookEvent } from "@/features/payments/application/webhooks";
 import { submitRefund } from "@/features/commerce/application/refunds";
 import { offerWaitlistSeats } from "@/features/events/application/registration";
-import { syncAppointmentToCalendar } from "@/features/integrations/application/google-calendar";
+import { syncAppointment, syncEventMeeting } from "@/features/integrations/application/meetings";
+import { syncGoogleBusy } from "@/features/integrations/application/google";
 import { sendCampaignBatch } from "@/features/marketing/application/campaigns";
 import * as scheduled from "@/features/automation/application/scheduled";
 
@@ -18,7 +19,8 @@ export const handlers: Record<string, Handler> = {
   "payment.webhook": (p) => processWebhookEvent(String(p.eventId)),
   "payment.refund": (p) => submitRefund(String(p.refundId)),
   "events.waitlist_offer": (p) => offerWaitlistSeats(String(p.eventId)),
-  "calendar.sync_appointment": (p) => syncAppointmentToCalendar(String(p.appointmentId)),
+  "calendar.sync_appointment": (p) => syncAppointment(String(p.appointmentId)),
+  "meeting.sync_event": (p) => syncEventMeeting(String(p.eventId)),
   "campaign.send_batch": (p) => sendCampaignBatch(String(p.campaignId)),
 
   // Periodic tasks (enqueued by the scheduler in worker.ts)
@@ -34,6 +36,7 @@ export const handlers: Record<string, Handler> = {
     return startDueCampaigns();
   },
   "cron.cleanup": () => scheduled.cleanup(),
+  "cron.google_busy": () => syncGoogleBusy(),
 };
 
 /** Periodic schedule: [job type, interval in minutes]. */
@@ -46,5 +49,6 @@ export const SCHEDULE: [string, number][] = [
   ["cron.follow_ups", 30],
   ["cron.refunds", 15],
   ["cron.calendar_reminders", 5],
+  ["cron.google_busy", 10],
   ["cron.cleanup", 24 * 60],
 ];

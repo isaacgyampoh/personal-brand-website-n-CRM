@@ -2,6 +2,8 @@ import "server-only";
 import { db, tx } from "@/lib/database/pool";
 import { enqueue } from "@/lib/jobs/queue";
 import { paymentGateway } from "./gateway";
+import type { PaymentGateway, WebhookEvent } from "../domain/gateway";
+import { verifySignedValue } from "@/lib/security/crypto";
 import { verifyAndApply } from "@/features/commerce/application/fulfilment";
 import { markRefundFailed, markRefundProcessed } from "@/features/commerce/application/refunds";
 
@@ -10,14 +12,39 @@ import { markRefundFailed, markRefundProcessed } from "@/features/commerce/appli
  * happens on the durable queue so provider retries never double-fulfil.
  */
 export async function receiveWebhook(rawBody: string, signature: string | null): Promise<{ status: number; body: string }> {
-  const gateway = paymentGateway();
-  if (!gateway) return { status: 503, body: "payments not configured" };
+  const gateway = await paymentGateway("paystack", "verify");
+  if (!gateway || gateway.name !== "paystack") return { status: 503, body: "payments not configured" };
   if (rawBody.length > 512_000) return { status: 413, body: "too large" };
   if (!gateway.verifyWebhookSignature(rawBody, signature)) return { status: 401, body: "invalid signature" };
+  return storeEvent(gateway, rawBody);
+}
 
+/**
+ * Hubtel callback. Hubtel does not sign callbacks, so the request must carry
+ * the expiring HMAC token we put in the callback URL for that exact payment
+ * reference, and the outcome is ALWAYS re-checked with Hubtel's status API.
+ */
+export async function receiveHubtelCallback(rawBody: string, token: string | null): Promise<{ status: number; body: string }> {
+  if (rawBody.length > 128_000) return { status: 413, body: "too large" };
+  const signed = token ? verifySignedValue(token) : null;
+  if (!signed?.startsWith("pay:")) return { status: 401, body: "invalid token" };
+  const gateway = await paymentGateway("hubtel", "verify");
+  if (!gateway || gateway.name !== "hubtel") return { status: 503, body: "payments not configured" };
   let evt;
   try {
     evt = gateway.parseWebhook(rawBody);
+  } catch {
+    return { status: 400, body: "malformed" };
+  }
+  if (evt.reference !== signed.slice(4)) return { status: 401, body: "reference mismatch" };
+  return storeEvent(gateway, rawBody, evt);
+}
+
+async function storeEvent(gateway: PaymentGateway, rawBody: string, parsed?: WebhookEvent): Promise<{ status: number; body: string }> {
+
+  let evt = parsed;
+  try {
+    evt ??= gateway.parseWebhook(rawBody);
   } catch {
     return { status: 400, body: "malformed" };
   }
@@ -41,7 +68,8 @@ export async function processWebhookEvent(eventId: string): Promise<void> {
   if (!ev || ev.processed_at) return;
   try {
     switch (ev.event_type) {
-      case "charge.success": {
+      case "charge.success":
+      case "checkout.callback": {
         if (!ev.reference) break;
         // Never trust the webhook body for amounts: verify with the provider API.
         const result = await verifyAndApply(ev.reference);

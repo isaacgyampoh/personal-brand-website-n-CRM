@@ -81,7 +81,7 @@ describe("appointment booking", () => {
   it("paid booking holds the slot pending payment and refuses when payments are unconfigured", async () => {
     const s = await makeService({ price_minor: 50000 });
     setPaymentGatewayForTests(null);
-    await expect(createBooking({ serviceSlug: s.slug, startsAt: tomorrowAt(10).toISOString(), customer: customer(1) })).rejects.toThrow(/not configured/);
+    await expect(createBooking({ serviceSlug: s.slug, startsAt: tomorrowAt(10).toISOString(), customer: customer(1) })).rejects.toThrow(/isn.t available/);
     const fake = fakeGateway();
     setPaymentGatewayForTests(fake.gw);
     const r = await createBooking({ serviceSlug: s.slug, startsAt: tomorrowAt(10).toISOString(), customer: customer(1) });

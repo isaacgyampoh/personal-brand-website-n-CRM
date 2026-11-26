@@ -88,12 +88,3 @@ export async function jobAction(_: unknown, fd: FormData): Promise<ActionResult>
   });
 }
 
-export async function disconnectIntegrationAction(_: unknown, fd: FormData): Promise<ActionResult> {
-  return runAction(async () => {
-    const u = await assertPermission("settings:manage");
-    const provider = z.enum(["google_calendar", "zoom"]).parse(fd.get("provider"));
-    await db.query("update integrations set status = 'disconnected', credentials_encrypted = null where provider = $1", [provider]);
-    await audit({ actorId: u.id, action: "integration.disconnect", entityType: "integration", entityId: provider });
-    return undefined;
-  });
-}

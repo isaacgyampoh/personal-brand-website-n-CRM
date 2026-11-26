@@ -85,7 +85,7 @@ export async function lessonForUser(courseSlug: string, lessonId: string, userId
   let media: { url: string; mime: string } | null = null;
   if (lesson.media_id) {
     const m = await db.one<{ storage_key: string; visibility: "public" | "private"; mime_type: string }>("select storage_key, visibility, mime_type from media_assets where id = $1 and deleted_at is null", [lesson.media_id]);
-    if (m) media = { url: m.visibility === "public" ? storage().publicUrl(m.storage_key) : await storage().signedUrl(m.storage_key, { expiresInSeconds: 3 * 3600, contentType: m.mime_type }), mime: m.mime_type };
+    if (m) media = { url: m.visibility === "public" ? (await storage()).publicUrl(m.storage_key) : await (await storage()).signedUrl(m.storage_key, { expiresInSeconds: 3 * 3600, contentType: m.mime_type }), mime: m.mime_type };
   }
   let embed: string | null = null;
   if (lesson.video_ref && lesson.video_provider === "youtube_unlisted") embed = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(lesson.video_ref)}?rel=0&modestbranding=1`;
@@ -93,7 +93,7 @@ export async function lessonForUser(courseSlug: string, lessonId: string, userId
 
   const resources = await Promise.all((await db.query<{ id: string; title: string; storage_key: string; filename: string; mime_type: string }>(
     `select r.id, r.title, m.storage_key, m.filename, m.mime_type from lesson_resources r join media_assets m on m.id = r.media_id where r.lesson_id = $1 order by r.position`, [lessonId],
-  )).map(async (r) => ({ title: r.title, url: o.enrolment ? await storage().signedUrl(r.storage_key, { expiresInSeconds: 600, downloadName: r.filename }) : null })));
+  )).map(async (r) => ({ title: r.title, url: o.enrolment ? await (await storage()).signedUrl(r.storage_key, { expiresInSeconds: 600, downloadName: r.filename }) : null })));
 
   let quiz: { id: string; passPercent: number; questions: { id: string; prompt: string; multiple: boolean; options: { id: string; label: string }[] }[]; attempts: { score_percent: number; passed: boolean; created_at: Date }[]; maxAttempts: number | null } | null = null;
   if (lesson.kind === "quiz") {

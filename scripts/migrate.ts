@@ -1,26 +1,25 @@
 /**
- * Portable migration runner. Applies supabase/migrations/*.sql in filename
+* Migration runner. Applies db/migrations/*.sql in filename
  * order, each inside its own transaction, and records them in
- * public.schema_migrations. Works against Supabase Postgres (direct or session
- * pooler connection) and self-hosted PostgreSQL alike.
+ * public.schema_migrations.
  *
  *   pnpm db:migrate            apply pending migrations
  *   pnpm db:migrate --status   list applied/pending
- *   pnpm db:migrate --seed     also apply supabase/seed.sql (idempotent)
+ *   pnpm db:migrate --seed     also apply db/seed.sql (idempotent)
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Client } from "pg";
 import { createHash } from "node:crypto";
 
-const dir = join(process.cwd(), "supabase", "migrations");
+const dir = join(process.cwd(), "db", "migrations");
 
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is required");
   const client = new Client({
     connectionString: url,
-    ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined,
+    ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: process.env.DATABASE_SSL_ALLOW_SELF_SIGNED !== "true" } : undefined,
   });
   await client.connect();
   try {
@@ -59,7 +58,7 @@ async function main() {
       }
     }
     if (process.argv.includes("--seed")) {
-      const seed = readFileSync(join(process.cwd(), "supabase", "seed.sql"), "utf8");
+      const seed = readFileSync(join(process.cwd(), "db", "seed.sql"), "utf8");
       await client.query("begin");
       await client.query(seed);
       await client.query("commit");

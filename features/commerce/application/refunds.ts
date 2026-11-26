@@ -7,6 +7,7 @@ import { audit } from "@/lib/audit";
 import { logActivity } from "@/features/crm/application/contacts";
 import { alertAdmin } from "@/features/notifications/application/send";
 import { paymentGateway } from "@/features/payments/application/gateway";
+import type { ProviderName } from "@/features/payments/domain/gateway";
 import { fulfillers, type OrderItemRow } from "./fulfillers";
 import type { OrderRow } from "./checkout";
 
@@ -56,19 +57,48 @@ export async function requestRefund(input: { orderId: string; amountMinor: numbe
   });
 }
 
-/** Job handler: submits a pending refund to the provider. */
+/**
+ * Job handler: submits a pending refund to the provider that took the payment.
+ * Providers without a refund API (Hubtel) are moved to "processing" and the
+ * business is asked to refund in the provider dashboard, then confirm here.
+ */
 export async function submitRefund(refundId: string): Promise<void> {
-  const r = await db.one<{ id: string; status: string; amount_minor: number; reason: string; provider_reference: string }>(
-    `select r.id, r.status, r.amount_minor, r.reason, p.provider_reference
-       from refunds r join payments p on p.id = r.payment_id where r.id = $1`,
+  const r = await db.one<{ id: string; status: string; amount_minor: number; reason: string; provider: string; provider_reference: string; order_reference: string }>(
+    `select r.id, r.status, r.amount_minor, r.reason, p.provider, p.provider_reference, o.reference as order_reference
+       from refunds r join payments p on p.id = r.payment_id join orders o on o.id = r.order_id where r.id = $1`,
     [refundId],
   );
   if (!r || r.status !== "pending") return;
-  const gateway = paymentGateway();
-  if (!gateway) throw new Error("Payments not configured; refund cannot be submitted.");
+  const gateway = await paymentGateway(r.provider as ProviderName, "verify");
+  if (!gateway || gateway.name !== r.provider) throw new Error(`${r.provider} credentials are not configured; refund cannot be submitted.`);
+  if (!gateway.supportsRefunds) {
+    const moved = await db.one("update refunds set status = 'processing' where id = $1 and status = 'pending' returning id", [r.id]);
+    if (moved) {
+      await alertAdmin(
+        `Manual refund needed for ${r.order_reference}`,
+        `Refund ${r.amount_minor} (minor units) for payment ${r.provider_reference} in the ${r.provider} merchant dashboard, then open the order in Studio and choose "Confirm refund processed".`,
+        `manual-refund:${r.id}`,
+      );
+    }
+    return;
+  }
   const result = await gateway.refund({ reference: r.provider_reference, amountMinor: r.amount_minor, note: r.reason });
   await db.query(`update refunds set status = 'processing', provider_refund_id = $2 where id = $1 and status = 'pending'`, [r.id, result.providerRefundId]);
   if (result.status === "processed") await tx((t) => markRefundProcessed(t, r.id, result.providerRefundId));
+}
+
+/** Staff confirmation that a refund was completed in a provider dashboard (providers without a refund API). */
+export async function confirmManualRefund(refundId: string, actorId: string, note: string): Promise<void> {
+  await tx(async (t) => {
+    const r = await t.one<{ id: string; status: string; provider: string; order_id: string }>(
+      `select r.id, r.status, p.provider, r.order_id from refunds r join payments p on p.id = r.payment_id where r.id = $1 for update of r`,
+      [refundId],
+    );
+    if (!r) throw new RefundError("Refund not found.");
+    if (r.status !== "processing" || r.provider !== "hubtel") throw new RefundError("Only Hubtel refunds awaiting manual processing can be confirmed here.");
+    await markRefundProcessed(t, r.id, null);
+    await audit({ actorId, action: "refund.confirm_manual", entityType: "order", entityId: r.order_id, data: { refundId, note: note.slice(0, 300) } }, t);
+  });
 }
 
 /** Finalises a refund exactly once: ledger entry, order totals, access revocation. */
@@ -112,10 +142,12 @@ export async function markRefundFailed(refundId: string, reason: string): Promis
 
 /** Reconciles refunds still processing with the provider. */
 export async function pollProcessingRefunds(): Promise<void> {
-  const gateway = paymentGateway();
-  if (!gateway) return;
+  const gateway = await paymentGateway("paystack", "verify");
+  if (!gateway || !gateway.supportsRefunds) return;
   const rows = await db.query<{ id: string; provider_refund_id: string }>(
-    `select id, provider_refund_id from refunds where status = 'processing' and provider_refund_id is not null and created_at > now() - interval '30 days' limit 50`,
+    `select r.id, r.provider_refund_id from refunds r join payments p on p.id = r.payment_id
+      where r.status = 'processing' and p.provider = $1 and r.provider_refund_id is not null and r.created_at > now() - interval '30 days' limit 50`,
+    [gateway.name],
   );
   for (const r of rows) {
     const res = await gateway.fetchRefund(r.provider_refund_id);

@@ -29,7 +29,7 @@ export default async function SystemPage({ searchParams }: { searchParams: Promi
       <PageTitle title="Jobs, notifications & audit" />
       {workerStale && <Notice tone="red">The background worker hasn&apos;t completed a scheduled task in the last 5 minutes. Reminders, emails, reconciliation and scheduled publishing need it running (<span className="font-mono">pnpm worker</span> / the worker container).</Notice>}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <Stat label="Database size" value={`${mb.toFixed(1)} MB`} hint="Supabase Free limit: 500 MB" />
+        <Stat label="Database size" value={`${mb.toFixed(1)} MB`} hint="Dedicated PostgreSQL database" />
         <Stat label="Worker heartbeat" value={health?.heartbeat ? formatInZone(health.heartbeat, tz, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "never"} />
         <Stat label="Pending jobs" value={c.pending ?? 0} /><Stat label="Running" value={c.running ?? 0} /><Stat label="Failed permanently" value={c.dead ?? 0} />
       </div>

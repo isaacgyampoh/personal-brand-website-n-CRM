@@ -2,7 +2,7 @@ import "server-only";
 import { UserError } from "@/lib/errors";
 import sharp from "sharp";
 import { db } from "@/lib/database/pool";
-import { storage, type Visibility } from "@/lib/storage";
+import { publicMediaUrl, storage, type Visibility } from "@/lib/storage";
 import { randomToken, sha256 } from "@/lib/security/crypto";
 import { audit } from "@/lib/audit";
 import { maxBytesFor, safeFilename, sniffFileType } from "../domain/file-types";
@@ -73,7 +73,7 @@ export async function uploadMedia(input: {
   const stamp = new Date().toISOString().slice(0, 7).replace("-", "/");
   const base = `${stamp}/${randomToken(9)}-${safeFilename(input.filename).replace(/\.[^.]+$/, "")}`.toLowerCase();
   const key = `${base}.${ext}`;
-  const store = storage();
+  const store = await storage();
   await store.put(key, body, mime, input.visibility);
 
   const variants: { width: number; key: string }[] = [];
@@ -97,7 +97,7 @@ export async function uploadMedia(input: {
 }
 
 export function mediaUrl(asset: Pick<MediaAsset, "storage_key" | "visibility">): string | null {
-  return asset.visibility === "public" ? storage().publicUrl(asset.storage_key) : null;
+  return asset.visibility === "public" ? publicMediaUrl(asset.storage_key) : null;
 }
 
 /** Where a media asset is still referenced. Deletion is blocked while any exist. */
@@ -134,7 +134,7 @@ export async function deleteMedia(id: string, actorId: string): Promise<{ ok: tr
   if (refs.length) return { ok: false, references: refs };
   const asset = await db.one<MediaAsset>("update media_assets set deleted_at = now() where id = $1 and deleted_at is null returning *", [id]);
   if (asset) {
-    const store = storage();
+    const store = await storage();
     await store.remove(asset.storage_key, asset.visibility);
     for (const v of asset.variants ?? []) await store.remove(v.key, asset.visibility);
     await audit({ actorId, action: "media.delete", entityType: "media", entityId: id, data: { filename: asset.filename } });

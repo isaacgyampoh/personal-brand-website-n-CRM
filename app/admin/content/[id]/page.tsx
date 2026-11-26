@@ -3,7 +3,7 @@ import { requireStaffPage } from "@/lib/auth/session";
 import { articleById, categories } from "@/features/content/application/articles";
 import { restoreArticleRevisionAction } from "@/features/content/presentation/actions";
 import { loadSetting } from "@/features/settings/application/settings";
-import { integrations } from "@/lib/config/env";
+import { aiAvailable } from "@/features/ai/application/assistant";
 import { db } from "@/lib/database/pool";
 import { formatDateTime, toLocalInput } from "@/lib/time";
 import { PageTitle, Panel } from "@/components/dashboard/ui";
@@ -21,7 +21,7 @@ export default async function EditArticle({ params }: { params: Promise<{ id: st
   return (
     <div className="space-y-6">
       <PageTitle title={a.title} back={{ href: "/admin/content", label: "Content" }} />
-      <ArticleEditor key={a.updated_at.toISOString()} categories={cats} canPublish={user.permissions.has("content:publish")} aiEnabled={integrations().ai}
+      <ArticleEditor key={a.updated_at.toISOString()} categories={cats} canPublish={user.permissions.has("content:publish")} aiEnabled={await aiAvailable()}
         initial={{ id: a.id, title: a.title, slug: a.slug, excerpt: a.excerpt, body: a.body, coverMediaId: a.cover_media_id, videoUrl: a.video_url ?? "", categoryId: a.category_id, tags: a.tags ?? [], authorName: a.author_name, featured: a.featured, seoTitle: a.seo?.title ?? "", seoDescription: a.seo?.description ?? "", status: a.status, scheduledFor: toLocalInput(a.scheduled_at, biz.timezone) }} />
       {revisions.length > 0 && (
         <Panel title="Revisions">

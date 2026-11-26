@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublicServices } from "@/features/website/application/public-queries";
 import { getPublicSettings } from "@/lib/cache";
-import { integrations } from "@/lib/config/env";
+import { paymentsReady } from "@/features/payments/application/gateway";
 import { BookingFlow } from "@/components/website/booking-flow";
 import { priceLabel } from "@/components/website/cards";
 
@@ -20,7 +20,7 @@ export default async function BookServicePage({ params }: Props) {
   const [services, settings] = await Promise.all([getPublicServices(), getPublicSettings()]);
   const s = services.find((x) => x.slug === slug);
   if (!s || s.bookingMode !== "instant") notFound();
-  const paymentsReady = s.priceMinor === 0 || integrations().payments;
+  const canPay = s.priceMinor === 0 || (await paymentsReady());
   return (
     <div className="site-container pb-28 pt-8 md:pt-14">
       <nav aria-label="Breadcrumb" className="eyebrow mb-8"><Link href="/book" className="hover:text-[var(--brand-accent)]">Book</Link> <span aria-hidden>/</span> {s.name}</nav>
@@ -36,7 +36,7 @@ export default async function BookServicePage({ params }: Props) {
           {s.cancellationPolicy && <p className="mt-6 text-xs leading-relaxed text-[var(--muted-ink)]">{s.cancellationPolicy}</p>}
         </div>
         <div className="lg:col-span-7 lg:col-start-6">
-          {paymentsReady ? (
+          {canPay ? (
             <BookingFlow
               serviceSlug={s.slug}
               serviceName={s.name}

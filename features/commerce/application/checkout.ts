@@ -2,7 +2,7 @@ import "server-only";
 import { UserError } from "@/lib/errors";
 import { db, tx, type Db } from "@/lib/database/pool";
 import { env } from "@/lib/config/env";
-import { humanReference } from "@/lib/security/crypto";
+import { humanReference, signValue } from "@/lib/security/crypto";
 import { upsertContact, logActivity, type ContactInput } from "@/features/crm/application/contacts";
 import { paymentGateway } from "@/features/payments/application/gateway";
 import { PaymentsNotConfiguredError } from "@/features/payments/domain/gateway";
@@ -106,9 +106,14 @@ export async function completeFreeOrderIfZero(t: Db, order: OrderRow): Promise<b
   return true;
 }
 
-/** Starts (or restarts) an online payment attempt for a pending order. */
+/** Signed token appended to provider callback URLs that are not themselves signed (Hubtel). */
+export function callbackToken(reference: string): string {
+  return signValue(`pay:${reference}`, Math.floor(Date.now() / 1000) + 7 * 86400);
+}
+
+/** Starts (or restarts) an online payment attempt for a pending order with the active provider. */
 export async function startPayment(orderId: string): Promise<{ authorizationUrl: string }> {
-  const gateway = paymentGateway();
+  const gateway = await paymentGateway(undefined, "checkout");
   if (!gateway) throw new PaymentsNotConfiguredError();
   const prepared = await tx(async (t) => {
     const order = await t.one<OrderRow>("select * from orders where id = $1 for update", [orderId]);
@@ -117,24 +122,39 @@ export async function startPayment(orderId: string): Promise<{ authorizationUrl:
     if (order.expires_at && order.expires_at < new Date()) throw new CheckoutError("This reservation has expired. Please start again.");
     const attempts = await t.one<{ n: number }>("select count(*)::int as n from payments where order_id = $1", [orderId]);
     if ((attempts?.n ?? 0) >= 8) throw new CheckoutError("Too many payment attempts for this order. Please contact us.");
+    // Never re-route a payment that may still complete at another provider.
+    const open = await t.one<{ provider: string }>(
+      "select provider from payments where order_id = $1 and status = 'initialized' and provider <> $2 and created_at > now() - interval '72 hours' limit 1",
+      [orderId, gateway.name],
+    );
+    if (open) throw new CheckoutError("A payment for this order is still being processed by another provider. Please wait a few minutes or contact us.");
     const reference = `${order.reference}-P${(attempts?.n ?? 0) + 1}`;
     await t.query(
-      `insert into payments (order_id, provider, provider_reference, amount_minor, currency, status)
-       values ($1, 'paystack', $2, $3, $4, 'initialized')`,
-      [order.id, reference, order.total_minor, order.currency],
+      `insert into payments (order_id, provider, provider_mode, provider_reference, amount_minor, currency, status)
+       values ($1, $2, $3, $4, $5, $6, 'initialized')`,
+      [order.id, gateway.name, gateway.mode, reference, order.total_minor, order.currency],
     );
-    return { order, reference };
+    const desc = await t.one<{ d: string }>("select string_agg(description, ', ') as d from order_items where order_id = $1", [order.id]);
+    return { order, reference, description: desc?.d || `Order ${order.reference}` };
   });
 
+  const app = env().APP_URL;
+  const complete = `${app}/checkout/complete?reference=${encodeURIComponent(prepared.reference)}`;
   const { authorizationUrl } = await gateway.initialize({
     reference: prepared.reference,
     amountMinor: prepared.order.total_minor,
     currency: prepared.order.currency,
     email: prepared.order.email,
-    callbackUrl: `${env().APP_URL}/checkout/complete`,
+    callbackUrl: gateway.name === "hubtel"
+      ? `${app}/api/webhooks/hubtel?token=${encodeURIComponent(callbackToken(prepared.reference))}`
+      : `${app}/checkout/complete`,
+    returnUrl: complete,
+    cancelUrl: `${complete}&cancelled=1`,
+    description: prepared.description,
     metadata: { order_reference: prepared.order.reference, order_id: prepared.order.id },
   });
-  await db.query("update payments set authorization_url = $2 where provider = 'paystack' and provider_reference = $1", [
+  await db.query("update payments set authorization_url = $3 where provider = $1 and provider_reference = $2", [
+    gateway.name,
     prepared.reference,
     authorizationUrl,
   ]);

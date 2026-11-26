@@ -21,7 +21,7 @@ function pool(): Pool {
     globalForPool.__brandPool = new Pool({
       connectionString: e.DATABASE_URL,
       max: e.DATABASE_POOL_MAX,
-      ssl: e.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
+      ssl: e.DATABASE_SSL ? { rejectUnauthorized: !e.DATABASE_SSL_ALLOW_SELF_SIGNED } : undefined,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,
       application_name: "brand-platform",

@@ -8,7 +8,7 @@ import { formatDateTime } from "@/lib/time";
 import { enqueue } from "@/lib/jobs/queue";
 import { upsertContact, logActivity } from "@/features/crm/application/contacts";
 import { enqueueEmail } from "@/features/notifications/application/send";
-import { paymentGateway } from "@/features/payments/application/gateway";
+import { paymentsReady } from "@/features/payments/application/gateway";
 import { PaymentsNotConfiguredError } from "@/features/payments/domain/gateway";
 import { completeFreeOrderIfZero, createOrder, holdMinutes, startPayment } from "@/features/commerce/application/checkout";
 import { registrationState, ticketOnSale } from "../domain/rules";
@@ -54,7 +54,7 @@ export async function registerForEvent(req: RegistrationRequest): Promise<Regist
   const quantity = req.attendees.length;
   if (quantity < 1 || quantity > ticket.max_per_order) throw new EventError(`You can register between 1 and ${ticket.max_per_order} people per order.`);
   const paid = ticket.price_minor > 0;
-  if (paid && !paymentGateway()) throw new PaymentsNotConfiguredError();
+  if (paid && !(await paymentsReady())) throw new PaymentsNotConfiguredError();
 
   const counts = await eventRepo.seatCounts(event.id);
   const remaining = remainingFor(event, ticket, counts);

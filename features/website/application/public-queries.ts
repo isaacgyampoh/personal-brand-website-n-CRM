@@ -1,14 +1,14 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/database/pool";
-import { storage } from "@/lib/storage";
+import { publicMediaUrl, withMedia } from "@/lib/storage";
 import { TAGS } from "@/lib/cache";
 import { PUBLIC_EVENT_COLUMNS } from "@/features/events/infrastructure/repository";
 import { publishedPage } from "./pages";
 import { publishedArticles, publishedArticle, relatedArticles, type ArticleRow } from "@/features/content/application/articles";
 
 /** Public DTOs use ISO strings: cached results are JSON-serialised. */
-const url = (key: string | null | undefined) => (key ? storage().publicUrl(key) : null);
+const url = (key: string | null | undefined) => (key ? publicMediaUrl(key) : null);
 const iso = (d: Date | string | null | undefined) => (d ? new Date(d).toISOString() : null);
 
 export type PublicService = {
@@ -18,7 +18,7 @@ export type PublicService = {
 };
 
 export const getPublicServices = unstable_cache(
-  async (): Promise<PublicService[]> => {
+  withMedia(async (): Promise<PublicService[]> => {
     const rows = await db.query<Record<string, unknown> & { storage_key: string | null }>(
       `select s.*, m.storage_key from services s left join media_assets m on m.id = s.image_media_id
         where s.is_active order by s.featured desc, s.sort_order, s.name`,
@@ -29,7 +29,7 @@ export const getPublicServices = unstable_cache(
       priceDisplay: s.price_display as string, durationMinutes: s.duration_minutes as number, bookingMode: s.booking_mode as PublicService["bookingMode"],
       locationType: s.location_type as string, featured: s.featured as boolean, cancellationPolicy: s.cancellation_policy as string, capacity: s.capacity as number,
     }));
-  },
+  }),
   ["public-services:v1"],
   { tags: [TAGS.services], revalidate: 3600 },
 );
@@ -66,17 +66,17 @@ const EVENT_SELECT = `select ${PUBLIC_EVENT_COLUMNS}, cm.storage_key as cover_ke
    from events e left join media_assets cm on cm.id = e.cover_media_id left join media_assets fm on fm.id = e.flyer_media_id`;
 
 export const getPublicEvents = unstable_cache(
-  async (): Promise<PublicEvent[]> =>
-    (await db.query(`${EVENT_SELECT} where e.status in ('published','completed','cancelled') and e.published_at is not null order by e.starts_at`)).map(mapEvent),
+  withMedia(async (): Promise<PublicEvent[]> =>
+    (await db.query(`${EVENT_SELECT} where e.status in ('published','completed','cancelled') and e.published_at is not null order by e.starts_at`)).map(mapEvent)),
   ["public-events:v1"],
   { tags: [TAGS.events], revalidate: 300 },
 );
 
 export const getPublicEvent = unstable_cache(
-  async (slug: string): Promise<PublicEvent | null> => {
+  withMedia(async (slug: string): Promise<PublicEvent | null> => {
     const row = await db.one(`${EVENT_SELECT} where e.slug = $1 and e.status in ('published','completed','cancelled') and e.published_at is not null`, [slug]);
     return row ? mapEvent(row) : null;
-  },
+  }),
   ["public-event:v1"],
   { tags: [TAGS.events], revalidate: 300 },
 );
@@ -89,7 +89,7 @@ export type PublicCourse = {
 };
 
 export const getPublicCourses = unstable_cache(
-  async (): Promise<PublicCourse[]> => {
+  withMedia(async (): Promise<PublicCourse[]> => {
     const rows = await db.query<Record<string, unknown>>(
       `select c.*, m.storage_key as cover_key,
         (select count(*)::int from lessons l where l.course_id = c.id) as lesson_count,
@@ -109,7 +109,7 @@ export const getPublicCourses = unstable_cache(
       modules: (c.modules as PublicCourse["modules"]) ?? [], seo: (c.seo as Record<string, string>) ?? {},
       visibility: c.visibility as PublicCourse["visibility"],
     }));
-  },
+  }),
   ["public-courses:v1"],
   { tags: [TAGS.courses], revalidate: 3600 },
 );
@@ -120,7 +120,7 @@ export type PublicProduct = {
 };
 
 export const getPublicProducts = unstable_cache(
-  async (): Promise<PublicProduct[]> => {
+  withMedia(async (): Promise<PublicProduct[]> => {
     const rows = await db.query<Record<string, unknown>>(
       `select p.*, m.storage_key as cover_key from products p left join media_assets m on m.id = p.cover_media_id
         where p.status = 'published' order by p.published_at desc nulls last`,
@@ -130,7 +130,7 @@ export const getPublicProducts = unstable_cache(
       description: p.description, coverUrl: url(p.cover_key as string | null), priceMinor: p.price_minor as number,
       currency: p.currency as string, isLeadMagnet: p.is_lead_magnet as boolean, seo: (p.seo as Record<string, string>) ?? {},
     }));
-  },
+  }),
   ["public-products:v1"],
   { tags: [TAGS.products], revalidate: 3600 },
 );
@@ -138,7 +138,7 @@ export const getPublicProducts = unstable_cache(
 export type PublicTestimonial = { id: string; authorName: string; authorTitle: string; company: string; quote: string; rating: number | null; photoUrl: string | null; featured: boolean };
 
 export const getPublicTestimonials = unstable_cache(
-  async (): Promise<PublicTestimonial[]> => {
+  withMedia(async (): Promise<PublicTestimonial[]> => {
     // Only approved testimonials with recorded consent (also enforced by a CHECK constraint).
     const rows = await db.query<Record<string, unknown>>(
       `select t.*, m.storage_key from testimonials t left join media_assets m on m.id = t.photo_media_id
@@ -148,7 +148,7 @@ export const getPublicTestimonials = unstable_cache(
       id: t.id as string, authorName: t.author_name as string, authorTitle: t.author_title as string, company: t.company as string,
       quote: t.quote as string, rating: t.rating as number | null, photoUrl: url(t.storage_key as string | null), featured: t.featured as boolean,
     }));
-  },
+  }),
   ["public-testimonials:v1"],
   { tags: [TAGS.proof], revalidate: 3600 },
 );
@@ -166,28 +166,28 @@ const mapArticle = (a: ArticleRow): PublicArticle => ({
 });
 
 export const getPublicArticles = unstable_cache(
-  async (opts: { q?: string; category?: string; tag?: string; page?: number; featuredOnly?: boolean; limit?: number }) =>
-    (await publishedArticles(opts)).map(mapArticle),
+  withMedia(async (opts: { q?: string; category?: string; tag?: string; page?: number; featuredOnly?: boolean; limit?: number }) =>
+    (await publishedArticles(opts)).map(mapArticle)),
   ["public-articles:v1"],
   { tags: [TAGS.articles], revalidate: 600 },
 );
 
 export const getPublicArticle = unstable_cache(
-  async (slug: string) => {
+  withMedia(async (slug: string) => {
     const a = await publishedArticle(slug);
     if (!a) return null;
     const related = (await relatedArticles(a.id, a.category_id)).map(mapArticle);
     return { article: mapArticle(a), related };
-  },
+  }),
   ["public-article:v1"],
   { tags: [TAGS.articles], revalidate: 600 },
 );
 
 export const getPublishedPage = unstable_cache(
-  async (slug: string) => {
+  withMedia(async (slug: string) => {
     const p = await publishedPage(slug);
     return p ? { ...p, published_at: iso(p.published_at) } : null;
-  },
+  }),
   ["published-page:v1"],
   { tags: [TAGS.pages], revalidate: 3600 },
 );
@@ -195,7 +195,7 @@ export const getPublishedPage = unstable_cache(
 export type PublicCaseStudy = { slug: string; title: string; clientName: string; summary: string; challenge: unknown; approach: unknown; outcome: unknown; coverUrl: string | null; publishedAt: string | null };
 
 export const getPublicCaseStudies = unstable_cache(
-  async (): Promise<PublicCaseStudy[]> => {
+  withMedia(async (): Promise<PublicCaseStudy[]> => {
     const rows = await db.query<Record<string, unknown>>(
       `select c.*, m.storage_key from case_studies c left join media_assets m on m.id = c.cover_media_id
         where c.status = 'published' and c.consent_confirmed order by c.published_at desc`,
@@ -204,7 +204,7 @@ export const getPublicCaseStudies = unstable_cache(
       slug: c.slug as string, title: c.title as string, clientName: c.client_name as string, summary: c.summary as string,
       challenge: c.challenge, approach: c.approach, outcome: c.outcome, coverUrl: url(c.storage_key as string | null), publishedAt: iso(c.published_at as Date | null),
     }));
-  },
+  }),
   ["public-case-studies:v1"],
   { tags: [TAGS.proof], revalidate: 3600 },
 );
@@ -212,7 +212,7 @@ export const getPublicCaseStudies = unstable_cache(
 export type PublicAppearance = { id: string; kind: string; title: string; outlet: string; url: string | null; appearedOn: string | null; description: string; imageUrl: string | null; featured: boolean };
 
 export const getPublicAppearances = unstable_cache(
-  async (): Promise<PublicAppearance[]> => {
+  withMedia(async (): Promise<PublicAppearance[]> => {
     const rows = await db.query<Record<string, unknown>>(
       `select a.*, m.storage_key from media_appearances a left join media_assets m on m.id = a.image_media_id where a.published order by a.appeared_on desc nulls last`,
     );
@@ -221,15 +221,15 @@ export const getPublicAppearances = unstable_cache(
       appearedOn: a.appeared_on ? String(a.appeared_on).slice(0, 10) : null, description: a.description as string,
       imageUrl: url(a.storage_key as string | null), featured: a.featured as boolean,
     }));
-  },
+  }),
   ["public-appearances:v1"],
   { tags: [TAGS.proof], revalidate: 3600 },
 );
 
 export const getSpeakingTopics = unstable_cache(
-  async () => db.query<{ id: string; title: string; description: string; audience: string; formats: string[] }>(
+  withMedia(async () => db.query<{ id: string; title: string; description: string; audience: string; formats: string[] }>(
     "select id, title, description, audience, formats from speaking_topics where active order by position, title",
-  ),
+  )),
   ["speaking-topics:v1"],
   { tags: [TAGS.proof], revalidate: 3600 },
 );

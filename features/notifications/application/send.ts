@@ -116,7 +116,7 @@ export async function deliverEmail(payload: {
   }
 
   try {
-    const result = await emailTransport().send({
+    const result = await (await emailTransport()).send({
       to: n.recipient,
       subject: rendered.subject,
       html: rendered.html,

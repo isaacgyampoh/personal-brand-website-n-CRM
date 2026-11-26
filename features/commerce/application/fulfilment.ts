@@ -5,7 +5,7 @@ import { formatMoney } from "@/lib/money";
 import { logActivity } from "@/features/crm/application/contacts";
 import { alertAdmin, enqueueEmail } from "@/features/notifications/application/send";
 import { paymentGateway } from "@/features/payments/application/gateway";
-import type { VerifiedTransaction } from "@/features/payments/domain/gateway";
+import type { ProviderName, VerifiedTransaction } from "@/features/payments/domain/gateway";
 import { fulfillers, type OrderItemRow } from "./fulfillers";
 import { issueReceipt } from "./receipts";
 import type { OrderRow } from "./checkout";
@@ -131,7 +131,7 @@ export async function applyVerifiedPayment(t: Db, payment: PaymentRow, verified:
     `insert into financial_ledger (order_id, payment_id, kind, amount_minor, currency, memo)
      values ($1, $2, 'payment', $3, $4, $5)
      on conflict (payment_id) where kind in ('payment','manual_payment') do nothing`,
-    [order.id, payment.id, verified.amountMinor, verified.currency, `Paystack ${payment.provider_reference}`],
+    [order.id, payment.id, verified.amountMinor, verified.currency, `${payment.provider === "hubtel" ? "Hubtel" : "Paystack"} ${payment.provider_reference}`],
   );
 
   if (["pending", "failed", "expired"].includes(order.status)) {
@@ -158,13 +158,14 @@ export async function applyVerifiedPayment(t: Db, payment: PaymentRow, verified:
  * outcome. Used by the callback page, webhooks and reconciliation.
  */
 export async function verifyAndApply(reference: string): Promise<{ status: string; orderReference: string | null }> {
-  const payment = await db.one<PaymentRow>("select * from payments where provider = 'paystack' and provider_reference = $1", [reference]);
+  const payment = await db.one<PaymentRow>("select * from payments where provider in ('paystack','hubtel') and provider_reference = $1", [reference]);
   if (!payment) return { status: "unknown", orderReference: null };
   const orderRef = await db.one<{ reference: string }>("select reference from orders where id = $1", [payment.order_id]);
   if (payment.status === "success") return { status: "paid", orderReference: orderRef?.reference ?? null };
 
-  const gateway = paymentGateway();
-  if (!gateway) return { status: "unconfigured", orderReference: orderRef?.reference ?? null };
+  // Always verify with the provider that created the payment, never another one.
+  const gateway = await paymentGateway(payment.provider as ProviderName, "verify");
+  if (!gateway || gateway.name !== payment.provider) return { status: "unconfigured", orderReference: orderRef?.reference ?? null };
   const verified = await gateway.verify(reference);
 
   const outcome = await tx(async (t) => {

@@ -3,7 +3,8 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { env, integrations } from "@/lib/config/env";
+import { env } from "@/lib/config/env";
+import { getIntegration } from "@/lib/integrations/store";
 import { signValue } from "@/lib/security/crypto";
 
 export type Visibility = "public" | "private";
@@ -27,14 +28,16 @@ function assertKey(key: string) {
 // Cloudflare R2 (S3-compatible). Status: implemented, UNVERIFIED until R2
 // credentials are supplied.
 // ---------------------------------------------------------------------------
-function r2(): ObjectStorage {
-  const e = env();
+export type R2Config = { accountId: string; accessKeyId: string; secretAccessKey: string; publicBucket: string; privateBucket: string; publicBaseUrl: string };
+
+export function createR2Storage(c: R2Config): ObjectStorage {
+  if (!/^[a-f0-9]{32}$/.test(c.accountId)) throw new Error("R2 account ID must be 32 hexadecimal characters.");
   const client = new S3Client({
     region: "auto",
-    endpoint: `https://${e.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: { accessKeyId: e.R2_ACCESS_KEY_ID!, secretAccessKey: e.R2_SECRET_ACCESS_KEY! },
+    endpoint: `https://${c.accountId}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId: c.accessKeyId, secretAccessKey: c.secretAccessKey },
   });
-  const bucket = (v: Visibility) => (v === "public" ? e.R2_PUBLIC_BUCKET! : e.R2_PRIVATE_BUCKET!);
+  const bucket = (v: Visibility) => (v === "public" ? c.publicBucket : c.privateBucket);
   return {
     driver: "r2",
     async put(key, body, contentType, visibility) {
@@ -58,14 +61,14 @@ function r2(): ObjectStorage {
       await client.send(new DeleteObjectCommand({ Bucket: bucket(visibility), Key: key }));
     },
     publicUrl(key) {
-      return `${e.R2_PUBLIC_BASE_URL!.replace(/\/$/, "")}/${key}`;
+      return `${c.publicBaseUrl.replace(/\/$/, "")}/${key}`;
     },
     async signedUrl(key, { expiresInSeconds, downloadName, contentType }) {
       assertKey(key);
       return getSignedUrl(
         client,
         new GetObjectCommand({
-          Bucket: e.R2_PRIVATE_BUCKET!,
+          Bucket: c.privateBucket,
           Key: key,
           ResponseContentDisposition: downloadName ? `attachment; filename="${downloadName.replace(/[^\w.\- ]/g, "_")}"` : undefined,
           ResponseContentType: contentType,
@@ -77,7 +80,8 @@ function r2(): ObjectStorage {
 }
 
 // ---------------------------------------------------------------------------
-// Local filesystem — development/testing only (blocked in production by env()).
+// Local filesystem — development/testing; in production only with
+// ALLOW_LOCAL_STORAGE_IN_PRODUCTION (staging before R2 is configured).
 // Private objects are served via /api/files/<signed token>.
 // ---------------------------------------------------------------------------
 function local(): ObjectStorage {
@@ -115,8 +119,42 @@ function local(): ObjectStorage {
   };
 }
 
-let instance: ObjectStorage | undefined;
-export function storage(): ObjectStorage {
-  if (!instance) instance = integrations().r2 ? r2() : local();
-  return instance;
+let instance: { key: string; store: ObjectStorage } | undefined;
+let mediaBase = "/media";
+
+/**
+ * Public URL for a public object, synchronously. Uses the R2 public base URL
+ * once storage() has resolved it in this process; before that it falls back to
+ * /media/<key>, which serves the object from whichever driver is active.
+ */
+export function publicMediaUrl(key: string): string {
+  return `${mediaBase.replace(/\/$/, "")}/${key}`;
+}
+
+/** Wraps a loader so public media URLs use the current storage configuration. */
+export function withMedia<A extends unknown[], R>(fn: (...args: A) => Promise<R>): (...args: A) => Promise<R> {
+  return async (...args: A) => {
+    await storage().catch(() => null);
+    return fn(...args);
+  };
+}
+
+/**
+ * Active storage: Cloudflare R2 when enabled in the Integration Centre,
+ * otherwise local disk (development, or staging that explicitly opts in).
+ */
+export async function storage(): Promise<ObjectStorage> {
+  const r2 = await getIntegration("r2");
+  const key = r2.usable ? `r2:${JSON.stringify(r2.values)}` : "local";
+  if (instance?.key === key) return instance.store;
+  if (!r2.usable && env().NODE_ENV === "production" && !env().ALLOW_LOCAL_STORAGE_IN_PRODUCTION) {
+    throw new Error("File storage is not configured. Enable Cloudflare R2 in Settings → Integrations.");
+  }
+  const v = r2.values;
+  const store = r2.usable
+    ? createR2Storage({ accountId: v.accountId, accessKeyId: v.accessKeyId, secretAccessKey: v.secretAccessKey, publicBucket: v.publicBucket, privateBucket: v.privateBucket, publicBaseUrl: v.publicBaseUrl })
+    : local();
+  instance = { key, store };
+  mediaBase = r2.usable && v.publicBaseUrl ? v.publicBaseUrl : "/media";
+  return store;
 }

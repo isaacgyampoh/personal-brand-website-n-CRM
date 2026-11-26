@@ -8,15 +8,15 @@ import { NextResponse, type NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const dev = process.env.NODE_ENV === "development";
-  const r2 = process.env.R2_PUBLIC_BASE_URL ? new URL(process.env.R2_PUBLIC_BASE_URL).origin : "";
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: https:`,
-    `media-src 'self' blob: ${r2}`.trim(),
+    // R2 is configured at runtime in the Integration Centre, so its origin isn't known at build time.
+    `media-src 'self' blob: https:`,
     "font-src 'self' data:",
-    `connect-src 'self'${dev ? " ws:" : ""} ${r2}`.trim(),
+    `connect-src 'self'${dev ? " ws:" : ""}`,
     "frame-src https://www.youtube-nocookie.com https://player.vimeo.com",
     "object-src 'none'",
     "base-uri 'self'",

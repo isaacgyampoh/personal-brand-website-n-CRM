@@ -54,6 +54,8 @@ export const settingSchemas = {
   commerce: z.object({
     holdMinutes: z.number().int().min(5).max(120).default(20),
     allowDiscountCodes: z.boolean().default(true),
+    /** Provider used for NEW checkouts. Existing payments always verify with the provider that created them. */
+    paymentProvider: z.enum(["paystack", "hubtel"]).default("paystack"),
   }),
   seo: z.object({
     titleTemplate: z.string().max(80).default("%s | Your Brand"),

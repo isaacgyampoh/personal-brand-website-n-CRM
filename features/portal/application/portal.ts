@@ -64,7 +64,7 @@ export async function eventAccess(userId: string, eventId: string) {
       where r.event_id = $1 order by r.position, r.created_at`, [eventId],
   )).map(async (r) => ({
     id: r.id, kind: r.kind, title: r.title, availableFrom: r.available_from,
-    url: r.available_from && r.available_from > now ? null : r.storage_key ? await storage().signedUrl(r.storage_key, { expiresInSeconds: 1800, downloadName: r.kind === "recording" ? undefined : r.filename ?? undefined }) : r.url,
+    url: r.available_from && r.available_from > now ? null : r.storage_key ? await (await storage()).signedUrl(r.storage_key, { expiresInSeconds: 1800, downloadName: r.kind === "recording" ? undefined : r.filename ?? undefined }) : r.url,
   })));
   const feedback = await db.one<{ rating: number }>("select rating from event_feedback where registration_id = $1", [reg.id]);
   const certificate = await db.one<{ code: string }>(
@@ -113,7 +113,7 @@ export async function downloadProduct(userId: string, entitlementId: string, ipH
   if (!row) throw new PortalError("Download not found.");
   if (row.download_limit !== null && row.downloads >= row.download_limit) throw new PortalError("You've reached the download limit for this item. Contact us if you need it again.");
   await db.query("insert into downloads (entitlement_id, media_id, ip_hash) values ($1,$2,$3)", [row.id, row.media_id, ipHash]);
-  return storage().signedUrl(row.storage_key, { expiresInSeconds: 300, downloadName: row.filename });
+  return (await storage()).signedUrl(row.storage_key, { expiresInSeconds: 300, downloadName: row.filename });
 }
 
 export function myOrders(userId: string) {

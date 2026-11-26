@@ -2,9 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/database/pool";
-import { env } from "@/lib/config/env";
 import { localProvider } from "./local-provider";
-import { supabaseProvider, supabaseUserEmail } from "./supabase-provider";
+import { staffMfaRequired } from "./mfa";
 import { isStaffRole, type Permission, type Role } from "./permissions";
 import type { AuthProvider } from "./provider";
 
@@ -16,36 +15,23 @@ export type SessionUser = {
   emailVerified: boolean;
   permissions: ReadonlySet<Permission>;
   isStaff: boolean;
+  mfaEnabled: boolean;
 };
 
+/** Built-in PostgreSQL-backed authentication (see lib/auth/local-provider.ts). */
 export function authProvider(): AuthProvider {
-  return env().AUTH_PROVIDER === "supabase" ? supabaseProvider : localProvider;
-}
-
-/** Ensures the application `users` row exists for a Supabase identity. */
-async function syncSupabaseUser(id: string) {
-  const exists = await db.one("select 1 from users where id = $1", [id]);
-  if (exists) return;
-  const info = await supabaseUserEmail();
-  if (!info || info.id !== id) return;
-  await db.query(
-    `insert into users (id, email, full_name, email_verified_at) values ($1, $2, $3, case when $4 then now() end)
-     on conflict (id) do nothing`,
-    [id, info.email, info.fullName, info.verified],
-  );
+  return localProvider;
 }
 
 /** Current user for this request (memoised per request). Never trust client-side role claims. */
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
-  const provider = authProvider();
-  const id = await provider.currentUserId();
+  const id = await authProvider().currentUserId();
   if (!id) return null;
-  if (provider.name === "supabase") await syncSupabaseUser(id);
   const row = await db.one<{
     id: string; email: string; full_name: string; role: Role; email_verified_at: Date | null; status: string;
-    permissions: Permission[] | null;
+    permissions: Permission[] | null; mfa_enabled_at: Date | null;
   }>(
-    `select u.id, u.email, u.full_name, u.role, u.email_verified_at, u.status,
+    `select u.id, u.email, u.full_name, u.role, u.email_verified_at, u.status, u.mfa_enabled_at,
             array_agg(rp.permission) filter (where rp.permission is not null) as permissions
        from users u left join role_permissions rp on rp.role = u.role
       where u.id = $1 group by u.id`,
@@ -60,8 +46,14 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     emailVerified: Boolean(row.email_verified_at),
     permissions: new Set(row.permissions ?? []),
     isStaff: isStaffRole(row.role),
+    mfaEnabled: Boolean(row.mfa_enabled_at),
   };
 });
+
+/** Staff must enrol in MFA before using Studio when STAFF_MFA_REQUIRED (default on in production). */
+export function needsMfaSetup(user: SessionUser): boolean {
+  return user.isStaff && !user.mfaEnabled && staffMfaRequired();
+}
 
 export class AuthorizationError extends Error {
   constructor(message = "You do not have permission to perform this action.") {
@@ -79,6 +71,7 @@ export async function requireUser(next = "/portal"): Promise<SessionUser> {
 export async function requireStaffPage(permission: Permission, next = "/admin"): Promise<SessionUser> {
   const user = await requireUser(next);
   if (!user.isStaff) redirect("/portal");
+  if (needsMfaSetup(user)) redirect("/admin/security?setup=1");
   if (!user.permissions.has(permission)) redirect("/admin?denied=1");
   return user;
 }
@@ -88,6 +81,7 @@ export async function assertPermission(permission: Permission): Promise<SessionU
   const user = await getCurrentUser();
   if (!user) throw new AuthorizationError("Please sign in.");
   if (!user.isStaff || !user.permissions.has(permission)) throw new AuthorizationError();
+  if (needsMfaSetup(user)) throw new AuthorizationError("Set up two-factor authentication (Studio → Security) before making changes.");
   return user;
 }
 

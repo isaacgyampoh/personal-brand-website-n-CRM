@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublicCourses } from "@/features/website/application/public-queries";
-import { integrations } from "@/lib/config/env";
+import { paymentsReady } from "@/features/payments/application/gateway";
 import { RichText } from "@/components/shared/rich-text";
 import { PurchasePanel } from "@/components/website/purchase-panel";
 import { priceLabel } from "@/components/website/cards";
@@ -67,7 +67,7 @@ export default async function CoursePage({ params }: Props) {
         </div>
         <aside className="lg:col-span-4 lg:col-start-9">
           <div className="card-frame sticky top-28 p-7 md:p-8">
-            <PurchasePanel type="course" slug={c.slug} priceLabel={priceLabel(c.priceMinor, c.currency)} free={c.priceMinor === 0} paymentsReady={integrations().payments} cta={c.priceMinor === 0 ? "Enrol for free" : undefined} />
+            <PurchasePanel type="course" slug={c.slug} priceLabel={priceLabel(c.priceMinor, c.currency)} free={c.priceMinor === 0} paymentsReady={await paymentsReady()} cta={c.priceMinor === 0 ? "Enrol for free" : undefined} />
           </div>
         </aside>
       </div>
