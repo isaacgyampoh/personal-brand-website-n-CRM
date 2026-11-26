@@ -57,7 +57,7 @@ const schema = z.object({
 
   AI_ENABLED: bool,
   ANTHROPIC_API_KEY: optional,
-  AI_MODEL: z.string().default("claude-sonnet-5-5"),
+  AI_MODEL: z.string().default("claude-opus-5-5"),
   AI_MONTHLY_REQUEST_LIMIT: z.coerce.number().int().min(0).default(300),
 
   ALLOW_LOCAL_STORAGE_IN_PRODUCTION: bool,

@@ -263,3 +263,17 @@ export async function eventFeedbackAction(_: unknown, fd: FormData): Promise<Act
     return undefined;
   });
 }
+
+// ---------------------------------------------------------------------------
+export async function submitAssessmentAction(input: { slug: string; answers: Record<string, string>; email?: string; fullName?: string; consent: boolean }): Promise<ActionResult<{ redirect: string }>> {
+  return runAction(async () => {
+    await guard("assessment", 10, 3600);
+    const { submitAssessment } = await import("@/features/marketing/application/assessments");
+    const data = z.object({
+      slug: z.string().max(100), answers: z.record(z.string().max(30), z.string().max(30)),
+      email: z.union([z.literal(""), email]).optional(), fullName: z.string().trim().max(120).optional(), consent: z.boolean(),
+    }).parse(input);
+    const token = await submitAssessment(data.slug, data.answers, { email: data.email || undefined, fullName: data.fullName, consent: data.consent });
+    return { redirect: `/assessment/results/${token}` };
+  });
+}
