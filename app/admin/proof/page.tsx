@@ -68,23 +68,10 @@ async function Testimonials() {
 
 async function Cases() {
   const rows = await db.query<{ id: string; title: string; client_name: string; summary: string; challenge: unknown; approach: unknown; outcome: unknown; cover_media_id: string | null; consent_confirmed: boolean; status: string }>("select * from case_studies order by created_at desc");
-  const Form = ({ c }: { c?: (typeof rows)[number] }) => (
-    <ActionForm action={caseStudyAction} resetOnSuccess={!c} className="grid gap-3 sm:grid-cols-2">
-      {c && <input type="hidden" name="id" value={c.id} />}
-      <Field label="Title" name="title" defaultValue={c?.title} required /><Field label="Client (as they wish to be named)" name="clientName" defaultValue={c?.client_name} />
-      <TextArea label="Summary" name="summary" defaultValue={c?.summary} rows={2} className="sm:col-span-2" />
-      <TextArea label="The challenge" name="challenge" defaultValue={c ? plainText(c.challenge) : ""} rows={3} />
-      <TextArea label="The approach" name="approach" defaultValue={c ? plainText(c.approach) : ""} rows={3} />
-      <TextArea label="The outcome (real, verifiable results only)" name="outcome" defaultValue={c ? plainText(c.outcome) : ""} rows={3} className="sm:col-span-2" />
-      <MediaPicker name="coverMediaId" label="Cover image" defaultId={c?.cover_media_id ?? ""} />
-      <div className="space-y-3"><Select label="Status" name="status" defaultValue={c?.status ?? "draft"} options={[["draft", "Draft"], ["published", "Published"], ["archived", "Archived"]] as const} /><Check label="Client approved publication" name="consentConfirmed" defaultChecked={c?.consent_confirmed} /></div>
-      <div><Submit>{c ? "Save" : "Create"}</Submit></div>
-    </ActionForm>
-  );
   return (
     <div className="space-y-4">
-      {rows.map((c) => <Panel key={c.id} title={c.title} actions={<StatusBadge status={c.status} />}><details><summary className="cursor-pointer text-sm text-muted-foreground">Edit</summary><div className="mt-3"><Form c={c} /></div></details></Panel>)}
-      <Panel title="New case study"><Form /></Panel>
+      {rows.map((c) => <Panel key={c.id} title={c.title} actions={<StatusBadge status={c.status} />}><details><summary className="cursor-pointer text-sm text-muted-foreground">Edit</summary><div className="mt-3"><CaseForm c={c} /></div></details></Panel>)}
+      <Panel title="New case study"><CaseForm /></Panel>
     </div>
   );
 }
@@ -121,5 +108,23 @@ async function Topics() {
         </ActionForm>
       </Panel>
     </div>
+  );
+}
+
+type CaseRow = { id: string; title: string; client_name: string; summary: string; challenge: unknown; approach: unknown; outcome: unknown; cover_media_id: string | null; consent_confirmed: boolean; status: string };
+
+function CaseForm({ c }: { c?: CaseRow }) {
+  return (
+    <ActionForm action={caseStudyAction} resetOnSuccess={!c} className="grid gap-3 sm:grid-cols-2">
+      {c && <input type="hidden" name="id" value={c.id} />}
+      <Field label="Title" name="title" defaultValue={c?.title} required /><Field label="Client (as they wish to be named)" name="clientName" defaultValue={c?.client_name} />
+      <TextArea label="Summary" name="summary" defaultValue={c?.summary} rows={2} className="sm:col-span-2" />
+      <TextArea label="The challenge" name="challenge" defaultValue={c ? plainText(c.challenge) : ""} rows={3} />
+      <TextArea label="The approach" name="approach" defaultValue={c ? plainText(c.approach) : ""} rows={3} />
+      <TextArea label="The outcome (real, verifiable results only)" name="outcome" defaultValue={c ? plainText(c.outcome) : ""} rows={3} className="sm:col-span-2" />
+      <MediaPicker name="coverMediaId" label="Cover image" defaultId={c?.cover_media_id ?? ""} />
+      <div className="space-y-3"><Select label="Status" name="status" defaultValue={c?.status ?? "draft"} options={[["draft", "Draft"], ["published", "Published"], ["archived", "Archived"]] as const} /><Check label="Client approved publication" name="consentConfirmed" defaultChecked={c?.consent_confirmed} /></div>
+      <div><Submit>{c ? "Save" : "Create"}</Submit></div>
+    </ActionForm>
   );
 }

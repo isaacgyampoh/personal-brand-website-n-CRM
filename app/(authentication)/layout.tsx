@@ -24,3 +24,6 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
     </div>
   );
 }
+
+// Rendered per request; published content comes from the tagged data cache (lib/cache.ts).
+export const dynamic = "force-dynamic";

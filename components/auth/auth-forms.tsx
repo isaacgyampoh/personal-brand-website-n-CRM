@@ -75,7 +75,7 @@ export function RegisterForm({ next }: { next: string }) {
       <Field name="fullName" label="Full name" autoComplete="name" error={fe("fullName")} />
       <Field name="email" label="Email" type="email" autoComplete="email" error={fe("email")} />
       <Field name="password" label="Password (10+ characters)" type="password" autoComplete="new-password" error={fe("password")} />
-      <label className="flex items-start gap-3 text-sm"><input type="checkbox" name="acceptTerms" className="mt-0.5 size-4" /> <span>I accept the <a href="/terms-of-service" className="underline">terms</a> and <a href="/privacy-policy" className="underline">privacy policy</a>.</span></label>
+      <label className="flex items-start gap-3 text-sm"><input type="checkbox" name="acceptTerms" className="mt-0.5 size-4" /> <span>I accept the <Link href="/terms-of-service" className="underline">terms</Link> and <Link href="/privacy-policy" className="underline">privacy policy</Link>.</span></label>
       {fe("acceptTerms") && <p className="text-sm text-red-700">{fe("acceptTerms")}</p>}
       <Alert state={state} />
       <button className="btn btn-primary w-full" disabled={pending}>{pending ? "Creating…" : "Create account"}</button>

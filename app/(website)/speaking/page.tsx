@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getPublicAppearances, getPublishedPage, getSpeakingTopics } from "@/features/website/application/public-queries";
 import { RenderBlocks } from "@/components/website/blocks";
 import { PageHeader } from "@/components/website/page-header";
@@ -47,7 +48,7 @@ export default async function SpeakingPage() {
         </section>
       )}
       <section id="enquire" className="site-container section-y grid gap-12 lg:grid-cols-12" aria-labelledby="enquire-h">
-        <div className="lg:col-span-4"><p className="eyebrow eyebrow-rule">Invite</p><h2 id="enquire-h" className="display-md mt-5">Speaking enquiry</h2><p className="mt-4 text-[var(--muted-ink)]">Share your event, audience and date. A media kit is available on the <a className="underline" href="/media">press page</a>.</p></div>
+        <div className="lg:col-span-4"><p className="eyebrow eyebrow-rule">Invite</p><h2 id="enquire-h" className="display-md mt-5">Speaking enquiry</h2><p className="mt-4 text-[var(--muted-ink)]">Share your event, audience and date. A media kit is available on the <Link className="underline" href="/media">press page</Link>.</p></div>
         <div className="lg:col-span-7 lg:col-start-6"><EnquiryForm form="speaking" showOrg showEventFields submitLabel="Send invitation" /></div>
       </section>
     </>

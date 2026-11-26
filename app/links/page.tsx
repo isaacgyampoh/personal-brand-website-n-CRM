@@ -46,3 +46,6 @@ export default async function LinksPage() {
     </div>
   );
 }
+
+// Rendered per request; published content comes from the tagged data cache (lib/cache.ts).
+export const dynamic = "force-dynamic";

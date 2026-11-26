@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { enquiryAction } from "@/features/website/presentation/public-actions";
 
@@ -42,7 +43,7 @@ export function EnquiryForm({ form, defaultSubject = "", showOrg = false, showEv
         <input type="checkbox" name="consentMarketing" className="mt-0.5 size-4 accent-[var(--brand-accent)]" />
         <span>I&apos;d also like to receive occasional updates by email (optional).</span>
       </label>
-      <p className="text-xs text-[var(--muted-ink)] sm:col-span-2">Your details are used only to respond to this enquiry. See the <a className="underline" href="/privacy-policy">privacy policy</a>.</p>
+      <p className="text-xs text-[var(--muted-ink)] sm:col-span-2">Your details are used only to respond to this enquiry. See the <Link className="underline" href="/privacy-policy">privacy policy</Link>.</p>
       {state && !state.ok && <p role="alert" className="text-sm font-medium text-red-700 sm:col-span-2">{state.error}</p>}
       <div className="sm:col-span-2"><button className="btn btn-primary" disabled={pending}>{pending ? "Sending…" : submitLabel}</button></div>
     </form>

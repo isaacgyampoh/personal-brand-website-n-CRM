@@ -57,7 +57,7 @@ export default async function CheckoutComplete({ searchParams }: { searchParams:
       ) : order ? (
         <>
           <h1 className="display-lg mt-6">Confirming your payment…</h1>
-          <p className="mt-6 text-[var(--muted-ink)]">{verifyError ? "We couldn't reach the payment provider just now." : "Your payment is still being processed."} This page will update automatically. You'll also receive an email once it's confirmed.</p>
+          <p className="mt-6 text-[var(--muted-ink)]">{verifyError ? "We couldn't reach the payment provider just now." : "Your payment is still being processed."} This page will update automatically. You&apos;ll also receive an email once it&apos;s confirmed.</p>
           <CheckoutPoller />
         </>
       ) : (
