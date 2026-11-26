@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { assertRecentAuth } from "@/lib/auth/reauth";
 import { assertPermission, authProvider } from "@/lib/auth/session";
 import { runAction, type ActionResult } from "@/lib/actions";
 import { db } from "@/lib/database/pool";
@@ -26,6 +27,7 @@ export async function saveTemplateAction(_: unknown, fd: FormData): Promise<Acti
 export async function inviteStaffAction(_: unknown, fd: FormData): Promise<ActionResult> {
   return runAction(async () => {
     const u = await assertPermission("users:manage");
+    await assertRecentAuth();
     const i = z.object({ email: z.string().trim().toLowerCase().email(), fullName: z.string().trim().min(1).max(120), role: z.enum(["admin", "content_manager", "booking_manager", "finance_manager"]) }).parse(Object.fromEntries(fd));
     if (i.role === "admin" && u.role !== "owner") throw new UserError("Only the business owner can create administrators.");
     const existing = await db.one<{ role: string }>("select role from users where email = $1", [i.email]);
@@ -44,6 +46,7 @@ export async function inviteStaffAction(_: unknown, fd: FormData): Promise<Actio
 export async function updateStaffAction(_: unknown, fd: FormData): Promise<ActionResult> {
   return runAction(async () => {
     const u = await assertPermission("users:manage");
+    await assertRecentAuth();
     const id = z.string().uuid().parse(fd.get("id"));
     const target = await db.one<{ role: string }>("select role from users where id = $1", [id]);
     if (!target) throw new UserError("User not found.");
@@ -66,6 +69,7 @@ export async function updateStaffAction(_: unknown, fd: FormData): Promise<Actio
 export async function rolePermissionsAction(_: unknown, fd: FormData): Promise<ActionResult> {
   return runAction(async () => {
     const u = await assertPermission("users:manage");
+    await assertRecentAuth();
     if (u.role !== "owner") throw new UserError("Only the business owner can change role permissions.");
     const role = z.enum(["content_manager", "booking_manager", "finance_manager", "admin"]).parse(fd.get("role"));
     const perms = fd.getAll("permissions").map(String).filter((p) => (PERMISSIONS as readonly string[]).includes(p));

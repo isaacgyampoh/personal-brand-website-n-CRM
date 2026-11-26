@@ -15,7 +15,8 @@
     "db:demo:remove": "tsx --tsconfig tsconfig.worker.json --env-file=.env.local scripts/remove-demo.ts",
     "create-owner": "tsx --tsconfig tsconfig.worker.json --env-file=.env.local scripts/create-owner.ts",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "credentials:rotate": "tsx --tsconfig tsconfig.worker.json --env-file=.env.local scripts/rotate-credentials.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.14.0",

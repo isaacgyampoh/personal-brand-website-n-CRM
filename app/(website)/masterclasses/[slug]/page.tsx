@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPublicEvent } from "@/features/website/application/public-queries";
+import { getEventPreview, getPublicEvent } from "@/features/website/application/public-queries";
+import { getCurrentUser } from "@/lib/auth/session";
 import { eventRepo } from "@/features/events/infrastructure/repository";
 import { publicTickets } from "@/features/events/application/registration";
 import { registrationState } from "@/features/events/domain/rules";
@@ -11,23 +12,35 @@ import { RichText } from "@/components/shared/rich-text";
 import { EventRegistration } from "@/components/website/event-registration";
 import { WaitlistForm } from "@/components/website/waitlist-form";
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ preview?: string }> };
+
+/** Published event, or — for staff with ?preview=1 — the draft. */
+async function load(slug: string, preview: boolean) {
+  const e = await getPublicEvent(slug);
+  if (e || !preview) return { e, isPreview: false };
+  const user = await getCurrentUser();
+  if (!user?.isStaff || !user.permissions.has("events:view")) return { e: null, isPreview: false };
+  return { e: await getEventPreview(slug), isPreview: true };
+}
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const e = await getPublicEvent((await params).slug);
-  if (!e) return {};
+  if (!e) return { robots: { index: false } };
+  const image = e.flyerUrl ?? e.coverUrl;
+  const abs = image ? new URL(image, process.env.APP_URL).toString() : undefined;
   return {
     title: e.seo.title || e.title,
     description: e.seo.description || e.summary,
     alternates: { canonical: `/masterclasses/${e.slug}` },
-    openGraph: { type: "website", title: e.title, description: e.summary },
+    openGraph: { type: "website", title: e.title, description: e.summary, url: `/masterclasses/${e.slug}`, images: abs ? [{ url: abs, alt: e.title }] : undefined },
+    twitter: { card: abs ? "summary_large_image" : "summary", title: e.title, description: e.summary, images: abs ? [abs] : undefined },
   };
 }
 
-export default async function EventPage({ params }: Props) {
+export default async function EventPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const e = await getPublicEvent(slug);
+  const { e, isPreview } = await load(slug, (await searchParams).preview === "1");
   if (!e) notFound();
   const row = await eventRepo.bySlug(slug);
   const tickets = row ? await publicTickets(row) : [];
@@ -57,6 +70,7 @@ export default async function EventPage({ params }: Props) {
 
   return (
     <article>
+      {isPreview && <div role="note" className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">Preview — this masterclass is not published yet. Only staff can see this page.</div>}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <header className="site-container pb-16 pt-8 md:pt-14">
         <nav aria-label="Breadcrumb" className="eyebrow mb-10"><Link href="/masterclasses" className="hover:text-[var(--brand-accent)]">Masterclasses</Link> <span aria-hidden>/</span> <span className="capitalize">{e.kind.replace("_", " ")}</span></nav>

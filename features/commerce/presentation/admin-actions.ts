@@ -2,12 +2,13 @@
 
 import { z } from "zod";
 import { assertPermission } from "@/lib/auth/session";
+import { assertRecentAuth } from "@/lib/auth/reauth";
 import { runAction, type ActionResult } from "@/lib/actions";
 import { db } from "@/lib/database/pool";
 import { parseMajorToMinor } from "@/lib/money";
 import { audit } from "@/lib/audit";
 import { UserError } from "@/lib/errors";
-import { requestRefund } from "../application/refunds";
+import { confirmManualRefund, requestRefund } from "../application/refunds";
 import { recordManualPayment, verifyAndApply } from "../application/fulfilment";
 import { enqueueEmail } from "@/features/notifications/application/send";
 import { env } from "@/lib/config/env";
@@ -16,6 +17,7 @@ import { formatMoney } from "@/lib/money";
 export async function refundAction(_: unknown, fd: FormData): Promise<ActionResult> {
   return runAction(async () => {
     const u = await assertPermission("payments:refund");
+    await assertRecentAuth();
     const orderId = z.string().uuid().parse(fd.get("orderId"));
     const o = await db.one<{ currency: string }>("select currency from orders where id = $1", [orderId]);
     if (!o) throw new UserError("Order not found.");
@@ -28,6 +30,7 @@ export async function refundAction(_: unknown, fd: FormData): Promise<ActionResu
 export async function manualPaymentAction(_: unknown, fd: FormData): Promise<ActionResult> {
   return runAction(async () => {
     const u = await assertPermission("payments:record");
+    await assertRecentAuth();
     const orderId = z.string().uuid().parse(fd.get("orderId"));
     const o = await db.one<{ currency: string }>("select currency from orders where id = $1", [orderId]);
     if (!o) throw new UserError("Order not found.");
@@ -64,6 +67,16 @@ export async function resendReceiptAction(_: unknown, fd: FormData): Promise<Act
       attachments: [{ kind: "receipt", orderId }],
     });
     await audit({ actorId: u.id, action: "receipt.resend", entityType: "order", entityId: orderId });
+    return undefined;
+  });
+}
+
+/** Staff confirms a refund completed in a provider dashboard (Hubtel has no refund API). */
+export async function confirmManualRefundAction(_: unknown, fd: FormData): Promise<ActionResult> {
+  return runAction(async () => {
+    const u = await assertPermission("payments:refund");
+    await assertRecentAuth();
+    await confirmManualRefund(z.string().uuid().parse(fd.get("refundId")), u.id, z.string().trim().min(3, "Add the provider refund reference").max(300).parse(fd.get("note")));
     return undefined;
   });
 }

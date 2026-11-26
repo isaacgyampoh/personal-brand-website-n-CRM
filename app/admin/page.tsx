@@ -4,6 +4,7 @@ import { loadSettings } from "@/features/settings/application/settings";
 import { resolveRange, growth } from "@/features/analytics/application/range";
 import { dashboardData } from "@/features/analytics/application/dashboard";
 import { integrationStatuses } from "@/lib/integrations/store";
+import { onboardingSteps } from "@/features/studio/application/onboarding";
 import { formatMoney } from "@/lib/money";
 import { formatDateTime, formatInZone } from "@/lib/time";
 import { PageTitle, Panel, Stat, StatusBadge, LinkButton, Notice } from "@/components/dashboard/ui";
@@ -23,6 +24,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const money = (m: number) => formatMoney(m, cur);
   const conv = d.visitors.visitors ? (d.counts.paid_orders / d.visitors.visitors) * 100 : null;
   const int = await integrationStatuses();
+  const onboardingLeft = user.permissions.has("settings:manage") ? (await onboardingSteps(user.id)).filter((x) => !x.optional && !x.done).length : 0;
   const missing = [int.paystack !== "connected" && "Paystack payments", int.smtp !== "connected" && "email (SMTP)", int.r2 !== "connected" && "Cloudflare R2 storage"].filter(Boolean);
   const a = d.attention;
   const attention = [
@@ -43,6 +45,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         actions={<RangeFilter base="/admin" current={range.key} from={sp.from} to={sp.to} />}
       />
       {sp.denied && <Notice tone="red">You don&apos;t have permission to open that area.</Notice>}
+      {user.permissions.has("settings:manage") && onboardingLeft > 0 && (
+        <Notice tone="blue">{onboardingLeft} launch step(s) left. <Link href="/admin/onboarding" className="font-medium underline">Continue setup</Link></Notice>
+      )}
       {missing.length > 0 && (
         <Notice>
           Setup incomplete: {missing.join(", ")} not connected yet.{" "}
@@ -52,7 +57,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
       <div className="flex flex-wrap gap-2">
         <LinkButton href="/admin/content/new" variant="outline" size="sm">+ Article</LinkButton>
-        <LinkButton href="/admin/events/new" variant="outline" size="sm">+ Masterclass</LinkButton>
+        <LinkButton href="/admin/events/quick" variant="outline" size="sm">+ Masterclass</LinkButton>
         <LinkButton href="/admin/bookings/new" variant="outline" size="sm">+ Appointment</LinkButton>
         <LinkButton href="/admin/services/new" variant="outline" size="sm">+ Service</LinkButton>
         <LinkButton href="/admin/crm/new" variant="outline" size="sm">+ Contact</LinkButton>

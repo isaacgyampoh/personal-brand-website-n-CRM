@@ -1,4 +1,6 @@
 import { requireStaffPage } from "@/lib/auth/session";
+import { hasRecentAuth } from "@/lib/auth/reauth";
+import { ReauthForm } from "@/components/dashboard/reauth-form";
 import { db } from "@/lib/database/pool";
 import { PERMISSIONS, ROLE_LABELS } from "@/lib/auth/permissions";
 import { inviteStaffAction, rolePermissionsAction, updateStaffAction } from "@/features/settings/presentation/actions";
@@ -11,19 +13,21 @@ const ROLE_OPTIONS = [["content_manager", "Content manager"], ["booking_manager"
 export default async function UsersPage() {
   const me = await requireStaffPage("users:manage");
   const [staff, perms] = await Promise.all([
-    db.query<{ id: string; email: string; full_name: string; role: string; status: string; last_login_at: Date | null }>("select id, email, full_name, role, status, last_login_at from users where role <> 'customer' order by role = 'owner' desc, created_at"),
+    db.query<{ id: string; email: string; full_name: string; role: string; status: string; last_login_at: Date | null; mfa: boolean }>("select id, email, full_name, role, status, last_login_at, mfa_enabled_at is not null as mfa from users where role <> 'customer' order by role = 'owner' desc, created_at"),
     db.query<{ role: string; permission: string }>("select * from role_permissions"),
   ]);
   const has = (role: string, p: string) => perms.some((x) => x.role === role && x.permission === p);
   return (
     <div className="space-y-6">
       <PageTitle title="Team & roles" description="Every admin page and action checks permissions on the server." back={{ href: "/admin/settings", label: "Settings" }} />
-      <Table head={["Person", "Role", "Status", "Last sign-in", ""]}>
+      {!(await hasRecentAuth()) && <ReauthForm mfa={me.mfaEnabled} />}
+      <Table head={["Person", "Role", "Status", "2FA", "Last sign-in", ""]}>
         {staff.map((s) => (
           <tr key={s.id}>
             <Td><span className="font-medium">{s.full_name || s.email}</span><div className="text-xs text-muted-foreground">{s.email}</div></Td>
             <Td>{ROLE_LABELS[s.role as keyof typeof ROLE_LABELS]}</Td>
             <Td><StatusBadge status={s.status} /></Td>
+            <Td><StatusBadge status={s.mfa ? "on" : "off"} tone={s.mfa ? "green" : "amber"} /></Td>
             <Td className="text-xs">{s.last_login_at?.toLocaleString("en-GB") ?? "Never"}</Td>
             <Td>{s.role !== "owner" && s.id !== me.id && (
               <div className="flex flex-wrap gap-2">

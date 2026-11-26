@@ -4,8 +4,9 @@ import { encrypt, hashToken, signValue } from "@/lib/security/crypto";
 import { base32Encode, currentStep, totpAt } from "@/lib/security/totp";
 import { checkSecondFactor } from "@/lib/auth/mfa";
 import {
-  getIntegration, invalidateIntegrationCache, listIntegrationViews, recordTestResult, saveIntegration, setIntegrationEnabled,
+  getIntegration, invalidateIntegrationCache, listIntegrationViews, recordTestResult, rotateCredentialEncryption, saveIntegration, setIntegrationEnabled,
 } from "@/lib/integrations/store";
+import { resetVaultForTests } from "@/lib/security/vault";
 import { paymentsReady, setPaymentGatewayForTests } from "@/features/payments/application/gateway";
 import { receiveHubtelCallback } from "@/features/payments/application/webhooks";
 import { verifyAndApply } from "@/features/commerce/application/fulfilment";
@@ -80,6 +81,24 @@ describe("Integration Centre store", () => {
   it("rejects configurable URLs that point at private networks (SSRF)", async () => {
     await expect(saveIntegration("hubtel", { values: { initiateUrl: "https://127.0.0.1/items/initiate" } }, actor)).rejects.toThrow(/private|reserved/);
     await expect(saveIntegration("hubtel", { values: { initiateUrl: "http://payproxyapi.hubtel.com/items/initiate" } }, actor)).rejects.toThrow(/https/);
+  });
+
+  it("rotates stored credentials to a new master key version without data loss", async () => {
+    await saveIntegration("paystack", { values: PAYSTACK }, actor);
+    const original = process.env.CREDENTIALS_MASTER_KEYS!;
+    process.env.CREDENTIALS_MASTER_KEYS = `3:${Buffer.alloc(32, 7).toString("base64")},${original}`;
+    resetVaultForTests();
+    try {
+      expect(await rotateCredentialEncryption(actor)).toBe(1);
+      expect((await db.one<{ key_version: number }>("select key_version from integration_configs where provider = 'paystack'"))!.key_version).toBe(3);
+      expect((await getIntegration("paystack")).values.secretKey).toBe("sk_test_supersecretvalue9876");
+      expect(await rotateCredentialEncryption(actor)).toBe(0);
+    } finally {
+      process.env.CREDENTIALS_MASTER_KEYS = original;
+      resetVaultForTests();
+      await db.query("delete from integration_configs");
+      invalidateIntegrationCache();
+    }
   });
 
   it("an optional integration missing doesn't break anything", async () => {

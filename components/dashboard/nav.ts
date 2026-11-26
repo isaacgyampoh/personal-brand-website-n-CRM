@@ -6,6 +6,8 @@ export type NavGroup = { label: string; items: NavItem[] };
 export const ADMIN_NAV: NavGroup[] = [
   { label: "Overview", items: [
     { href: "/admin", label: "Dashboard", icon: "LayoutDashboard", permission: "dashboard:view" },
+    { href: "/admin/activity", label: "Activity", icon: "Bell", permission: "dashboard:view" },
+    { href: "/admin/search", label: "Search", icon: "Search", permission: "dashboard:view" },
     { href: "/admin/analytics", label: "Analytics", icon: "LineChart", permission: "analytics:view" },
   ] },
   { label: "Clients", items: [
@@ -20,7 +22,8 @@ export const ADMIN_NAV: NavGroup[] = [
     { href: "/admin/events", label: "Masterclasses", icon: "Presentation", permission: "events:view" },
     { href: "/admin/academy", label: "Academy", icon: "GraduationCap", permission: "courses:manage" },
     { href: "/admin/shop", label: "Shop", icon: "ShoppingBag", permission: "products:manage" },
-    { href: "/admin/payments", label: "Payments", icon: "Wallet", permission: "payments:view" },
+    { href: "/admin/payments", label: "Orders & payments", icon: "Wallet", permission: "payments:view" },
+    { href: "/admin/finance", label: "Finance", icon: "Receipt", permission: "payments:view" },
   ] },
   { label: "Publish", items: [
     { href: "/admin/website", label: "Website", icon: "Globe", permission: "website:edit" },
@@ -34,6 +37,7 @@ export const ADMIN_NAV: NavGroup[] = [
     { href: "/admin/ai", label: "AI assistant", icon: "Sparkles", permission: "ai:use" },
   ] },
   { label: "System", items: [
+    { href: "/admin/onboarding", label: "Get started", icon: "CheckSquare", permission: "settings:manage" },
     { href: "/admin/settings", label: "Business settings", icon: "Settings", permission: "settings:manage" },
     { href: "/admin/settings/integrations", label: "Integrations", icon: "Plug", permission: "settings:manage" },
     { href: "/admin/security", label: "Security", icon: "ShieldCheck", permission: "dashboard:view" },

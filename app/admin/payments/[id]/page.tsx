@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { requireStaffPage } from "@/lib/auth/session";
 import { db } from "@/lib/database/pool";
 import { loadSetting } from "@/features/settings/application/settings";
-import { manualPaymentAction, refundAction, resendReceiptAction, reverifyAction } from "@/features/commerce/presentation/admin-actions";
+import { confirmManualRefundAction, manualPaymentAction, refundAction, resendReceiptAction, reverifyAction } from "@/features/commerce/presentation/admin-actions";
+import { hasRecentAuth } from "@/lib/auth/reauth";
+import { ReauthForm } from "@/components/dashboard/reauth-form";
 import { formatMoney, minorToMajorString } from "@/lib/money";
 import { formatDateTime } from "@/lib/time";
 import { PageTitle, Panel, StatusBadge, Notice, Table, Td } from "@/components/dashboard/ui";
@@ -25,6 +27,8 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     db.query<{ id: string; amount_minor: number; status: string; reason: string; created_at: Date; failure_reason: string | null }>("select * from refunds where order_id = $1 order by created_at", [id]),
   ]);
   const money = (m: number) => formatMoney(m, o.currency);
+  const recent = await hasRecentAuth();
+  const manualRefunds = refunds.filter((r) => r.status === "processing" && payments.some((p) => p.provider === "hubtel"));
   const refundable = o.total_minor - o.refunded_minor - refunds.filter((r) => ["pending", "processing"].includes(r.status)).reduce((s, r) => s + r.amount_minor, 0);
   return (
     <div className="space-y-6">
@@ -49,7 +53,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 <Td>{money(p.amount_minor)}</Td>
                 <Td><StatusBadge status={p.status} />{p.gateway_response && <div className="text-xs text-muted-foreground">{p.gateway_response}</div>}</Td>
                 <Td className="text-xs">{p.verified_at ? formatDateTime(p.verified_at, tz) : "—"}</Td>
-                <Td>{p.provider === "paystack" && p.status !== "success" && <ActionButton action={reverifyAction} fields={{ reference: p.provider_reference }} label="Verify now" success="Checked with Paystack" />}</Td>
+                <Td>{(p.provider === "paystack" || p.provider === "hubtel") && p.status !== "success" && <ActionButton action={reverifyAction} fields={{ reference: p.provider_reference }} label="Verify now" success={`Checked with ${p.provider === "hubtel" ? "Hubtel" : "Paystack"}`} />}</Td>
               </tr>
             ))}</Table> : <p className="text-sm text-muted-foreground">No payment attempts.</p>}
           </Panel>
@@ -63,6 +67,16 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             {o.receipt && <div className="mt-3 flex flex-wrap gap-2 text-sm"><a className="underline" href={`/api/receipts/${o.id}`}>Receipt {o.receipt} (PDF)</a><ActionButton action={resendReceiptAction} fields={{ orderId: o.id }} label="Resend" success="Receipt queued" /></div>}
             {Object.keys(o.attribution).length > 0 && <p className="mt-3 text-xs text-muted-foreground">Source: {[o.attribution.utm_source, o.attribution.utm_campaign].filter(Boolean).join(" / ")}</p>}
           </Panel>
+          {!recent && (user.permissions.has("payments:refund") || user.permissions.has("payments:record")) && <ReauthForm mfa={user.mfaEnabled} />}
+          {user.permissions.has("payments:refund") && manualRefunds.map((r) => (
+            <Panel key={r.id} title="Confirm Hubtel refund" description={`Refund ${money(r.amount_minor)} in the Hubtel merchant dashboard first, then confirm here. Access is revoked only after confirmation.`}>
+              <ActionForm action={confirmManualRefundAction} success="Refund confirmed" confirm="Confirm the money has been returned to the customer?" className="space-y-3">
+                <input type="hidden" name="refundId" value={r.id} />
+                <Field label="Hubtel refund reference / note" name="note" required />
+                <Submit variant="destructive">Confirm refund processed</Submit>
+              </ActionForm>
+            </Panel>
+          ))}
           {user.permissions.has("payments:record") && ["pending", "failed", "expired", "needs_attention"].includes(o.status) && (
             <Panel title="Record offline payment" description="Bank transfer, MoMo to business line or cash. Recorded in the audit log.">
               <ActionForm action={manualPaymentAction} success="Payment recorded — order fulfilled" confirm="Confirm you have received this money?" className="space-y-3">

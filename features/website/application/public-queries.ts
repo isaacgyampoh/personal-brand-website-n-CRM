@@ -1,7 +1,7 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/database/pool";
-import { publicMediaUrl, withMedia } from "@/lib/storage";
+import { primeMedia, publicMediaUrl, withMedia } from "@/lib/storage";
 import { TAGS } from "@/lib/cache";
 import { PUBLIC_EVENT_COLUMNS } from "@/features/events/infrastructure/repository";
 import { publishedPage } from "./pages";
@@ -80,6 +80,13 @@ export const getPublicEvent = unstable_cache(
   ["public-event:v1"],
   { tags: [TAGS.events], revalidate: 300 },
 );
+
+/** Uncached draft preview for staff (the caller must check permissions). */
+export async function getEventPreview(slug: string): Promise<PublicEvent | null> {
+  await primeMedia();
+  const row = await db.one(`${EVENT_SELECT} where e.slug = $1`, [slug]);
+  return row ? mapEvent(row) : null;
+}
 
 export type PublicCourse = {
   id: string; slug: string; title: string; subtitle: string; summary: string; description: unknown; coverUrl: string | null;

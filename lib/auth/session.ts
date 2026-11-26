@@ -38,15 +38,20 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     [id],
   );
   if (!row || row.status !== "active") return null;
+  const isStaff = isStaffRole(row.role);
+  const mfaEnabled = Boolean(row.mfa_enabled_at);
+  // Central enforcement: staff who must enrol in MFA hold NO permissions until they do,
+  // so every page, server action and API route check fails closed.
+  const locked = isStaff && !mfaEnabled && staffMfaRequired();
   return {
     id: row.id,
     email: row.email,
     fullName: row.full_name,
     role: row.role,
     emailVerified: Boolean(row.email_verified_at),
-    permissions: new Set(row.permissions ?? []),
-    isStaff: isStaffRole(row.role),
-    mfaEnabled: Boolean(row.mfa_enabled_at),
+    permissions: new Set(locked ? [] : row.permissions ?? []),
+    isStaff,
+    mfaEnabled,
   };
 });
 

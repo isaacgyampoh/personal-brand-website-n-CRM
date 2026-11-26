@@ -23,9 +23,9 @@ export default async function EventsAdmin({ searchParams }: { searchParams: Prom
     <div>
       <PageTitle title="Masterclasses & events" actions={<>
         <div className="flex items-center gap-3 text-sm"><Link href="/admin/events" className={!past ? "font-semibold" : "text-muted-foreground"}>Upcoming</Link><Link href="/admin/events?show=past" className={past ? "font-semibold" : "text-muted-foreground"}>Past</Link></div>
-        {user.permissions.has("events:manage") && <LinkButton href="/admin/events/new">New event</LinkButton>}
+        {user.permissions.has("events:manage") && <><LinkButton href="/admin/events/new" variant="outline">Advanced form</LinkButton><LinkButton href="/admin/events/quick">Quick masterclass</LinkButton></>}
       </>} />
-      {rows.length === 0 ? <Empty title={past ? "No past events" : "No upcoming events"} action={<LinkButton href="/admin/events/new">Create a masterclass</LinkButton>} /> : (
+      {rows.length === 0 ? <Empty title={past ? "No past events" : "No upcoming events"} action={<LinkButton href="/admin/events/quick">Create a masterclass</LinkButton>} /> : (
         <Table head={["Event", "Date", "Seats", "Revenue", "Status"]}>
           {rows.map((e) => (
             <tr key={e.id} className="hover:bg-muted/40">

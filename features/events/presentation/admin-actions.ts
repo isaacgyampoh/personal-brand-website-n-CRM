@@ -8,7 +8,7 @@ import { fromLocalInput } from "@/lib/time";
 import { loadSetting } from "@/features/settings/application/settings";
 import {
   addResource, addSessions, cancelEvent, checkIn, deleteTicket, duplicateEvent, EventAdminError, issueEventCertificates,
-  manualRegistration, rescheduleEvent, saveAccess, saveEvent, saveTicket, setEventStatus,
+  manualRegistration, quickCreateMasterclass, rescheduleEvent, saveAccess, saveEvent, saveTicket, setEventStatus,
 } from "../application/admin";
 import { db } from "@/lib/database/pool";
 
@@ -172,5 +172,20 @@ export async function certificatesAction(_: unknown, fd: FormData): Promise<Acti
     const n = await issueEventCertificates(z.string().uuid().parse(fd.get("id")), u.id);
     if (n === 0) throw new EventAdminError("No new certificates: mark attendance first (already-issued certificates are not duplicated).");
     return undefined;
+  });
+}
+
+export async function quickCreateAction(_: unknown, fd: FormData): Promise<ActionResult<{ redirect: string }>> {
+  return runAction(async () => {
+    const u = await assertPermission("events:manage");
+    const tz = (await loadSetting("business")).timezone;
+    const id = await quickCreateMasterclass({
+      ...Object.fromEntries(fd), timezone: tz,
+      startsAt: await dt(fd, "startsAt", tz) ?? undefined,
+      earlyBirdEndsAt: await dt(fd, "earlyBirdEndsAt", tz), registrationClosesAt: await dt(fd, "registrationClosesAt", tz),
+      waitlist: on(fd, "waitlist"), publish: fd.get("intent") === "publish",
+    }, u.id);
+    done();
+    return { redirect: `/admin/events/${id}/ready` };
   });
 }

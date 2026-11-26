@@ -131,6 +131,11 @@ export function publicMediaUrl(key: string): string {
   return `${mediaBase.replace(/\/$/, "")}/${key}`;
 }
 
+/** Resolves storage so publicMediaUrl() uses the current configuration. Never throws. */
+export async function primeMedia(): Promise<void> {
+  await storage().catch(() => null);
+}
+
 /** Wraps a loader so public media URLs use the current storage configuration. */
 export function withMedia<A extends unknown[], R>(fn: (...args: A) => Promise<R>): (...args: A) => Promise<R> {
   return async (...args: A) => {

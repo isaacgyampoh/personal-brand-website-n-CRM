@@ -84,7 +84,8 @@ export default async function EventAdmin({ params, searchParams }: { params: Pro
           {canManage ? (
             <ActionForm action={saveAccessAction} className="grid gap-4 sm:grid-cols-2">
               <input type="hidden" name="eventId" value={id} />
-              <Select label="Provider" name="provider" defaultValue={access?.meeting_provider ?? "manual"} options={[["manual", "Manual link"], ["zoom", "Zoom"], ["google_meet", "Google Meet"]] as const} />
+              <Select label="Provider" name="provider" defaultValue={access?.meeting_provider ?? "manual"} options={[["manual", "Paste a link"], ["zoom", "Zoom (created automatically)"], ["google_meet", "Google Meet (created automatically)"], ["none", "In person only — no online link"]] as const}
+                hint="Zoom/Meet need the integration connected. Leave the link blank to have it created; it updates when you reschedule and is removed if you cancel." />
               <Field label="Join page opens (minutes before start)" name="opensMinutesBefore" type="number" defaultValue={access?.access_opens_minutes_before ?? 30} />
               <Field label="Meeting link" name="url" defaultValue={access?.meeting_url ?? ""} placeholder="https://" className="sm:col-span-2" />
               <Field label="Meeting ID" name="meetingId" defaultValue={access?.meeting_id ?? ""} />

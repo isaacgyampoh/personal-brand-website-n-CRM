@@ -74,6 +74,10 @@ export function AdminShell({ groups, user, brand, children }: { groups: NavGroup
     <div className="min-h-dvh bg-muted/40 font-sans text-foreground">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r bg-background lg:flex">
         <Link href="/admin" className="flex h-14 items-center border-b px-5 text-[15px] font-semibold tracking-tight">{brand}<span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">Studio</span></Link>
+        <form action="/admin/search" role="search" className="border-b p-3">
+          <label htmlFor="studio-search" className="sr-only">Search Studio</label>
+          <input id="studio-search" name="q" placeholder="Search clients, orders…" className="h-9 w-full rounded-lg border bg-muted/40 px-3 text-sm" />
+        </form>
         <div className="flex-1 overflow-y-auto p-3"><NavList groups={groups} pathname={pathname} /></div>
         {footer}
       </aside>
@@ -83,7 +87,7 @@ export function AdminShell({ groups, user, brand, children }: { groups: NavGroup
           <Menu className="size-5" aria-hidden />
         </button>
         <Link href="/admin" className="text-sm font-semibold">{brand}</Link>
-        <span className="size-10" />
+        <Link href="/admin/search" aria-label="Search" className="inline-flex size-10 items-center justify-center rounded-md hover:bg-muted"><Search className="size-5" aria-hidden /></Link>
       </header>
 
       {open && (

@@ -361,3 +361,75 @@ export async function issueEventCertificates(eventId: string, actorId: string): 
   await audit({ actorId, action: "event.certificates", entityType: "event", entityId: eventId, data: { issued: n } });
   return n;
 }
+
+// ---------------- Quick create (one-screen masterclass wizard) ----------------
+export const quickCreateInput = z.object({
+  title: z.string().trim().min(3, "Give the masterclass a title").max(200),
+  summary: z.string().trim().min(10, "Add a one- or two-sentence summary").max(600),
+  description: z.string().max(30000).default(""),
+  flyerMediaId: z.union([z.literal(""), z.string().uuid()]).default(""),
+  format: z.enum(["online", "in_person", "hybrid"]),
+  venueName: z.string().trim().max(200).default(""),
+  venueAddress: z.string().trim().max(400).default(""),
+  timezone: z.string().default("Africa/Accra"),
+  startsAt: z.date({ message: "Choose the date and start time" }),
+  durationMinutes: z.coerce.number().int().min(15, "At least 15 minutes").max(24 * 60),
+  seats: z.union([z.literal(""), z.coerce.number().int().min(1).max(100000)]).default(""),
+  pricing: z.enum(["free", "paid"]),
+  price: z.string().default("0"),
+  currency: z.string().length(3).default("GHS"),
+  earlyBirdPrice: z.string().default(""),
+  earlyBirdEndsAt: z.date().nullable(),
+  registrationClosesAt: z.date().nullable(),
+  waitlist: z.boolean(),
+  meetingProvider: z.enum(["zoom", "google_meet", "manual", "none"]),
+  meetingUrl: z.string().trim().max(500).default(""),
+  publish: z.boolean(),
+});
+
+/**
+ * Creates a complete masterclass in one step: event, standard ticket,
+ * optional early-bird ticket, registration deadline, joining method and
+ * (optionally) publishes it. Zoom/Meet meetings are created by the worker.
+ */
+export async function quickCreateMasterclass(raw: unknown, actorId: string): Promise<string> {
+  const i = quickCreateInput.parse(raw);
+  if (i.startsAt.getTime() < Date.now()) throw new EventAdminError("The start time is in the past.");
+  if (i.format !== "online" && !i.venueName) throw new EventAdminError("Add the venue for an in-person or hybrid masterclass.");
+  if (i.format !== "in_person" && i.meetingProvider === "none") throw new EventAdminError("Choose how online attendees will join.");
+  if (i.meetingProvider === "manual" && i.format !== "in_person" && !/^https:\/\//.test(i.meetingUrl)) throw new EventAdminError("Paste the meeting link (it must start with https://).");
+  if (i.registrationClosesAt && i.registrationClosesAt > i.startsAt) throw new EventAdminError("Registration must close before the masterclass starts.");
+  const price = i.pricing === "free" ? 0 : parseMajorToMinor(i.price, i.currency);
+  if (i.pricing === "paid" && price <= 0) throw new EventAdminError("Enter the ticket price.");
+  const early = i.pricing === "paid" && i.earlyBirdPrice.trim() ? parseMajorToMinor(i.earlyBirdPrice, i.currency) : null;
+  if (early !== null && (early <= 0 || early >= price)) throw new EventAdminError("The early-bird price must be lower than the standard price.");
+  if (early !== null && (!i.earlyBirdEndsAt || i.earlyBirdEndsAt > i.startsAt)) throw new EventAdminError("Choose when the early-bird price ends (before the start time).");
+  if (i.meetingProvider === "zoom" && !(await zoomAvailable())) throw new EventAdminError("Zoom isn't connected yet. Connect it in Settings → Integrations, or choose “Paste a link”.");
+  if (i.meetingProvider === "google_meet" && !(await googleConnected())) throw new EventAdminError("Google isn't connected yet. Connect it in Settings → Integrations, or choose “Paste a link”.");
+
+  const id = await saveEvent(null, {
+    title: i.title, kind: "masterclass", format: i.format, summary: i.summary, description: i.description,
+    flyerMediaId: i.flyerMediaId, coverMediaId: i.flyerMediaId, venueName: i.venueName, venueAddress: i.venueAddress, timezone: i.timezone,
+    startsAt: i.startsAt, endsAt: new Date(i.startsAt.getTime() + i.durationMinutes * 60_000), capacity: i.seats,
+    registrationOpensAt: null, registrationClosesAt: i.registrationClosesAt, waitlistEnabled: i.waitlist,
+    certificateEnabled: false, feedbackEnabled: true,
+  }, actorId);
+  const salesEnd = i.registrationClosesAt ?? i.startsAt;
+  if (early !== null) {
+    await db.query(
+      `insert into ticket_types (event_id, name, description, price_minor, currency, sales_end_at, position) values ($1, 'Early bird', $2, $3, $4, $5, 0)`,
+      [id, "Limited-time price", early, i.currency.toUpperCase(), i.earlyBirdEndsAt],
+    );
+  }
+  await db.query(
+    `insert into ticket_types (event_id, name, price_minor, currency, sales_start_at, sales_end_at, position) values ($1, $2, $3, $4, $5, $6, 1)`,
+    [id, i.pricing === "free" ? "Free registration" : "Standard", price, i.currency.toUpperCase(), early !== null ? i.earlyBirdEndsAt : null, salesEnd],
+  );
+  await saveAccess(id, {
+    provider: i.format === "in_person" ? "none" : i.meetingProvider, url: i.meetingProvider === "manual" ? i.meetingUrl : "",
+    meetingId: "", passcode: "", instructions: i.format === "in_person" ? `Venue: ${i.venueName}${i.venueAddress ? `, ${i.venueAddress}` : ""}` : "", opensMinutesBefore: 30,
+  }, actorId);
+  if (i.publish) await setEventStatus(id, "publish", actorId);
+  await audit({ actorId, action: "event.quick_create", entityType: "event", entityId: id, data: { published: i.publish } });
+  return id;
+}

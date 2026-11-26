@@ -14,9 +14,10 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 export const metadata = { title: "Marketing" };
 const TABS = [["campaigns", "Email campaigns"], ["links", "Tracked links & attribution"], ["subscribers", "Subscribers"], ["discounts", "Discount codes"]] as const;
 
-export default async function Marketing({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function Marketing({ searchParams }: { searchParams: Promise<{ tab?: string; dest?: string }> }) {
   await requireStaffPage("marketing:manage");
-  const tab = (await searchParams).tab ?? "campaigns";
+  const sp = await searchParams;
+  const tab = sp.tab ?? "campaigns";
   const [counts, biz] = await Promise.all([subscriberCounts(), loadSetting("business")]);
   const base = env().APP_URL;
   return (
@@ -26,7 +27,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
       <nav className="flex gap-1 overflow-x-auto border-b">{TABS.map(([k, l]) => <Link key={k} href={`/admin/marketing?tab=${k}`} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${tab === k ? "border-foreground font-medium" : "border-transparent text-muted-foreground"}`}>{l}</Link>)}</nav>
 
       {tab === "campaigns" && <Campaigns tz={biz.timezone} />}
-      {tab === "links" && <Links base={base} currency={biz.currency} />}
+      {tab === "links" && <Links base={base} currency={biz.currency} dest={sp.dest} />}
       {tab === "subscribers" && <Subscribers tz={biz.timezone} />}
       {tab === "discounts" && <Discounts currency={biz.currency} />}
     </div>
@@ -45,7 +46,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
     );
   }
 
-  async function Links({ base, currency }: { base: string; currency: string }) {
+  async function Links({ base, currency, dest }: { base: string; currency: string; dest?: string }) {
     const rows = await db.query<{ id: string; slug: string; name: string; destination: string; channel: string; active: boolean; clicks: number; leads: number; orders: number; revenue: number; bookings: number; registrations: number }>(
       `select l.*, (select count(*) from link_clicks c where c.link_id = l.id)::int as clicks,
          (select count(*) from contacts c where c.attribution->>'linkId' = l.id::text)::int as leads,
@@ -62,7 +63,7 @@ export default async function Marketing({ searchParams }: { searchParams: Promis
         <Panel title="Create a branded link" description="Share these on LinkedIn, Instagram or in emails to see which posts drive bookings, registrations and revenue.">
           <ActionForm action={saveLinkAction} resetOnSuccess className="grid gap-3 sm:grid-cols-3">
             <Field label="Name" name="name" required placeholder="LinkedIn post — Dec masterclass" />
-            <Field label="Destination" name="destination" required placeholder="/masterclasses/…" />
+            <Field label="Destination" name="destination" required placeholder="/masterclasses/…" defaultValue={dest && dest.startsWith("/") ? dest : undefined} />
             <Select label="Channel" name="channel" options={[["linkedin", "LinkedIn"], ["instagram", "Instagram"], ["x", "X"], ["facebook", "Facebook"], ["tiktok", "TikTok"], ["youtube", "YouTube"], ["email", "Email"], ["whatsapp_share", "WhatsApp share"], ["referral", "Referral"], ["other", "Other"]] as const} />
             <Field label="Short code (optional)" name="slug" />
             <Field label="Campaign name (optional)" name="utmCampaign" />
