@@ -3,17 +3,19 @@
 import { useActionState } from "react";
 import { submitTestimonialAction } from "@/features/website/presentation/public-actions";
 
-export function TestimonialForm() {
+export function TestimonialForm({ token, name, email }: { token?: string; name?: string; email?: string } = {}) {
   const [state, action, pending] = useActionState(submitTestimonialAction, null);
   if (state?.ok) return <p role="status" className="display-sm border-l-2 border-[var(--brand-accent)] pl-6">Thank you — that means a great deal.</p>;
   const err = (k: string) => (state && !state.ok ? state.fieldErrors?.[k] : undefined);
   return (
     <form action={action} className="grid gap-5 sm:grid-cols-2" noValidate>
       <div aria-hidden className="hidden"><input name="website" tabIndex={-1} autoComplete="off" /></div>
+      {token && <input type="hidden" name="requestToken" value={token} />}
       {([["authorName", "Your name", "name"], ["email", "Email (not published)", "email"], ["authorTitle", "Role / title", "organization-title"], ["company", "Company", "organization"]] as const).map(([k, l, ac]) => (
         <div key={k}>
           <label htmlFor={`t-${k}`} className="field-label">{l}</label>
-          <input id={`t-${k}`} name={k} autoComplete={ac} type={k === "email" ? "email" : "text"} className="field" aria-invalid={Boolean(err(k))} />
+          <input id={`t-${k}`} name={k} autoComplete={ac} type={k === "email" ? "email" : "text"} className="field" aria-invalid={Boolean(err(k))}
+            defaultValue={k === "authorName" ? name : k === "email" ? email : undefined} readOnly={k === "email" && Boolean(token && email)} />
           {err(k) && <p className="mt-1 text-sm text-red-700">{err(k)}</p>}
         </div>
       ))}

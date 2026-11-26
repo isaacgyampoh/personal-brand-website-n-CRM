@@ -19,6 +19,8 @@ export type MediaAsset = {
   alt_text: string;
   category: string;
   variants: { width: number; key: string }[];
+  focal_x?: string;
+  focal_y?: string;
   created_at: Date;
 };
 
@@ -159,4 +161,57 @@ export async function listMedia(opts: { q?: string; visibility?: Visibility; cat
     `select * from media_assets where ${where.join(" and ")} order by created_at desc limit $${params.length - 1} offset $${params.length}`,
     params,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Focal point & cropping
+// ---------------------------------------------------------------------------
+export const CROP_ASPECTS = { "16:9": 16 / 9, "1:1": 1, "4:5": 4 / 5, "1.91:1": 1.91, "3:4": 3 / 4 } as const;
+export type CropAspect = keyof typeof CROP_ASPECTS;
+
+/** Largest rectangle of the given aspect that fits the image, centred on the focal point and clamped to the edges. Pure. */
+export function cropRect(width: number, height: number, aspect: number, focalX: number, focalY: number) {
+  let w = width;
+  let h = Math.round(width / aspect);
+  if (h > height) { h = height; w = Math.round(height * aspect); }
+  const left = Math.min(Math.max(Math.round(focalX * width - w / 2), 0), width - w);
+  const top = Math.min(Math.max(Math.round(focalY * height - h / 2), 0), height - h);
+  return { left, top, width: w, height: h };
+}
+
+export async function setFocalPoint(id: string, x: number, y: number, actorId: string) {
+  const fx = Math.min(Math.max(x, 0), 1);
+  const fy = Math.min(Math.max(y, 0), 1);
+  await db.query("update media_assets set focal_x = $2, focal_y = $3 where id = $1 and mime_type like 'image/%'", [id, fx.toFixed(4), fy.toFixed(4)]);
+  await audit({ actorId, action: "media.focal", entityType: "media", entityId: id });
+}
+
+/** Creates a new cropped copy (the original is never modified), with its own responsive variants. */
+export async function cropMedia(id: string, aspect: CropAspect, actorId: string): Promise<MediaAsset> {
+  const src = await db.one<MediaAsset>("select * from media_assets where id = $1 and deleted_at is null", [id]);
+  if (!src || !src.mime_type.startsWith("image/") || src.mime_type === "image/gif") throw new UploadError("Only still images can be cropped.");
+  const bytes = await (await storage()).get(src.storage_key, src.visibility);
+  if (!bytes) throw new UploadError("The original file could not be read from storage.");
+  const meta = await sharp(bytes).metadata();
+  const rect = cropRect(meta.width ?? 0, meta.height ?? 0, CROP_ASPECTS[aspect], Number(src.focal_x), Number(src.focal_y));
+  const cropped = await sharp(bytes).extract(rect).webp({ quality: 88 }).toBuffer();
+  const name = `${src.filename.replace(/\.[^.]+$/, "")}-${aspect.replace(":", "x")}.webp`;
+  const { asset } = await uploadMedia({ bytes: cropped, filename: name, visibility: src.visibility, altText: src.alt_text, category: src.category, actorId });
+  await db.query("update media_assets set derived_from = $2 where id = $1", [asset.id, src.id]);
+  return asset;
+}
+
+/** Storage used by stored originals (variants add roughly a third for images). */
+export async function storageUsage() {
+  const [totals, byCategory] = await Promise.all([
+    db.one<{ files: number; bytes: number; public_bytes: number; private_bytes: number; images: number; videos: number }>(
+      `select count(*)::int as files, coalesce(sum(size_bytes),0)::bigint as bytes,
+              coalesce(sum(size_bytes) filter (where visibility = 'public'),0)::bigint as public_bytes,
+              coalesce(sum(size_bytes) filter (where visibility = 'private'),0)::bigint as private_bytes,
+              count(*) filter (where mime_type like 'image/%')::int as images, count(*) filter (where mime_type like 'video/%')::int as videos
+         from media_assets where deleted_at is null`),
+    db.query<{ category: string; files: number; bytes: number }>(
+      "select category, count(*)::int as files, coalesce(sum(size_bytes),0)::bigint as bytes from media_assets where deleted_at is null group by 1 order by 3 desc limit 10"),
+  ]);
+  return { ...totals!, bytes: Number(totals!.bytes), public_bytes: Number(totals!.public_bytes), private_bytes: Number(totals!.private_bytes), byCategory: byCategory.map((c) => ({ ...c, bytes: Number(c.bytes) })) };
 }

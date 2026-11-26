@@ -1,5 +1,7 @@
 "use server";
 
+import { requestTestimonial } from "../application/testimonials";
+
 import { z } from "zod";
 import { assertPermission } from "@/lib/auth/session";
 import { runAction, type ActionResult } from "@/lib/actions";
@@ -112,6 +114,14 @@ export async function saveSegmentAction(_: unknown, fd: FormData): Promise<Actio
     const name = z.string().trim().min(2).max(80).parse(fd.get("name"));
     const filter = contactFilterSchema.parse(JSON.parse(String(fd.get("filter") ?? "{}")));
     await db.query("insert into segments (name, filter) values ($1,$2) on conflict (name) do update set filter = excluded.filter", [name, JSON.stringify(filter)]);
+    return undefined;
+  });
+}
+
+export async function requestTestimonialAction(_: unknown, fd: FormData): Promise<ActionResult> {
+  return runAction(async () => {
+    const u = await assertPermission("crm:edit");
+    await requestTestimonial(z.string().uuid().parse(fd.get("id")), u.id);
     return undefined;
   });
 }

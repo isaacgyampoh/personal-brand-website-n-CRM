@@ -5,6 +5,7 @@ import { activityFeed } from "@/features/studio/application/activity";
 import { onboardingSteps } from "@/features/studio/application/onboarding";
 import type { SessionUser } from "@/lib/auth/session";
 import type { Permission } from "@/lib/auth/permissions";
+import { requestTestimonial, contactForTestimonialToken } from "@/features/crm/application/testimonials";
 import { resetData } from "../helpers";
 
 afterAll(() => closePool());
@@ -39,5 +40,29 @@ describe("global search & activity", () => {
     expect(steps.find((s) => s.key === "paystack")!.done).toBe(false);
     await db.query("update users set mfa_enabled_at = now() where role <> 'customer'");
     expect((await onboardingSteps(owner!.id)).find((s) => s.key === "mfa")!.done).toBe(true);
+  });
+});
+
+describe("testimonial requests", () => {
+  it("only asks real clients, once per 90 days, never suppressed addresses, with a verifiable link", async () => {
+    const actor = (await db.one<{ id: string }>("insert into users (email, role) values ('tr@example.com','owner') on conflict (email) do update set role='owner' returning id"))!.id;
+    const c = (await db.one<{ id: string }>("select id from contacts where email = 'akosua@example.com'"))!.id;
+    await expect(requestTestimonial(c, actor)).rejects.toThrow(/Only clients/);
+    await db.query(
+      `insert into orders (reference, contact_id, email, customer_name, currency, subtotal_minor, total_minor, status, paid_at)
+       values ('ORD-TESTIMONI1', $1, 'akosua@example.com', 'Akosua', 'GHS', 1000, 1000, 'paid', now())`, [c]);
+    await requestTestimonial(c, actor);
+    await expect(requestTestimonial(c, actor)).rejects.toThrow(/last 90 days/);
+    const n = await db.one<{ id: string; recipient: string }>("select id, recipient from notifications where template_key = 'testimonial_request'");
+    expect(n!.recipient).toBe("akosua@example.com");
+    const job = await db.one<{ payload: { data: { testimonialUrl: string } } }>("select payload from jobs where type = 'notification.email' order by id desc limit 1");
+    const token = new URL(job!.payload.data.testimonialUrl).searchParams.get("r")!;
+    expect((await contactForTestimonialToken(token))!.email).toBe("akosua@example.com");
+    expect(await contactForTestimonialToken(token.slice(0, -2) + "xx")).toBeNull();
+
+    const other = (await db.one<{ id: string }>("insert into contacts (full_name, email) values ('Gone', 'gone@example.com') returning id"))!.id;
+    await db.query(`insert into orders (reference, contact_id, email, customer_name, currency, subtotal_minor, total_minor, status, paid_at) values ('ORD-TESTIMONI2', $1, 'gone@example.com', 'Gone', 'GHS', 1000, 1000, 'paid', now())`, [other]);
+    await db.query("insert into email_suppressions (email, reason) values ('gone@example.com', 'unsubscribed') on conflict do nothing");
+    await expect(requestTestimonial(other, actor)).rejects.toThrow(/unsubscribed/);
   });
 });

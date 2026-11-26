@@ -1,5 +1,7 @@
 "use server";
 
+import { contactForTestimonialToken } from "@/features/crm/application/testimonials";
+
 import { z } from "zod";
 import { tx } from "@/lib/database/pool";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -225,6 +227,7 @@ const testimonialSchema = z.object({
   quote: z.string().trim().min(20, "Please write at least a sentence or two").max(2000),
   rating: z.coerce.number().int().min(1).max(5).optional(),
   consentPublish: z.string().optional(),
+  requestToken: z.string().max(400).optional(),
 });
 
 /** Submitted testimonials are stored as PENDING; nothing is published without admin approval. */
@@ -233,12 +236,16 @@ export async function submitTestimonialAction(_: unknown, fd: FormData): Promise
     if (isBot(fd)) return undefined;
     await guard("testimonial", 3, 3600);
     const input = testimonialSchema.parse(Object.fromEntries(fd));
+    // A valid request link ties the testimonial to a verified client.
+    const requested = await contactForTestimonialToken(input.requestToken);
+    if (requested) input.email = requested.email;
     await tx(async (t) => {
+      if (requested) await logActivity(t, requested.id, "form", "Testimonial submitted (requested)");
       await t.query(
         `insert into testimonials (author_name, author_title, company, quote, rating, source, consent_confirmed, consent_note, status, submitted_by_email)
          values ($1,$2,$3,$4,$5,'submitted',$6,$7,'pending',$8)`,
         [input.authorName, input.authorTitle, input.company, input.quote, input.rating ?? null, input.consentPublish === "on",
-         input.consentPublish === "on" ? `Consent given via website form on ${new Date().toISOString().slice(0, 10)}` : "", input.email],
+         input.consentPublish === "on" ? `Consent given via ${requested ? "requested testimonial link (verified client)" : "website form"} on ${new Date().toISOString().slice(0, 10)}` : "", input.email],
       );
       await alertAdmin("New testimonial to review", `${input.authorName}: “${input.quote.slice(0, 200)}”`, `testimonial:${input.email}:${Date.now()}`, t);
     });

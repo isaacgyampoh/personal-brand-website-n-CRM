@@ -4,7 +4,7 @@ import { requireStaffPage } from "@/lib/auth/session";
 import { contactProfile, pipelineStages } from "@/features/crm/application/admin";
 import { leadScore } from "@/features/crm/domain/segments";
 import { loadSetting } from "@/features/settings/application/settings";
-import { deleteContactAction, mergeAction, noteAction, tagsAction, taskAction, taskStatusAction, updateContactAction } from "@/features/crm/presentation/actions";
+import { deleteContactAction, mergeAction, noteAction, requestTestimonialAction, tagsAction, taskAction, taskStatusAction, updateContactAction } from "@/features/crm/presentation/actions";
 import { formatMoney } from "@/lib/money";
 import { formatDateTime, formatInZone } from "@/lib/time";
 import { PageTitle, Panel, StatusBadge } from "@/components/dashboard/ui";
@@ -150,6 +150,11 @@ export default async function ContactPage({ params }: { params: Promise<{ id: st
                   </li>
                 ))}
               </ul>
+            </Panel>
+          )}
+          {canEdit && c.email && (
+            <Panel title="Ask for a testimonial" description="Emails a personal link. Their words arrive for your review — nothing is published without their consent and your approval.">
+              <ActionButton action={requestTestimonialAction} fields={{ id: c.id }} label="Send testimonial request" success="Request sent" />
             </Panel>
           )}
           {canEdit && (

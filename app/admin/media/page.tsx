@@ -1,5 +1,6 @@
 import { requireStaffPage } from "@/lib/auth/session";
-import { listMedia, mediaUrl } from "@/features/media/application/media";
+import { listMedia, mediaUrl, storageUsage } from "@/features/media/application/media";
+import { FocalEditor } from "@/components/dashboard/focal-editor";
 import { deleteMediaAction, updateMediaAction } from "@/features/media/presentation/actions";
 import { getIntegration } from "@/lib/integrations/store";
 import { PageTitle, Notice, Empty, Pager } from "@/components/dashboard/ui";
@@ -13,11 +14,18 @@ export default async function MediaPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
   const visibility = sp.visibility === "private" ? "private" : sp.visibility === "public" ? "public" : undefined;
-  const items = await listMedia({ q: sp.q, visibility, page });
+  const [items, usage] = await Promise.all([listMedia({ q: sp.q, visibility, page }), storageUsage()]);
+  const mb = (b: number) => (b >= 1073741824 ? `${(b / 1073741824).toFixed(2)} GB` : `${(b / 1048576).toFixed(1)} MB`);
   return (
     <div className="space-y-6">
       <PageTitle title="Media library" description="Images are converted to WebP, resized, and stripped of location metadata. Private files are only ever served through short-lived signed links." />
       {!(await getIntegration("r2")).usable && <Notice>Using local server storage. Connect Cloudflare R2 in Settings → Integrations before launch — large files never go into the database.</Notice>}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border bg-background p-3"><p className="text-xs text-muted-foreground">Storage used</p><p className="text-lg font-semibold">{mb(usage.bytes)}</p><p className="text-[11px] text-muted-foreground">{usage.files} file(s), originals</p></div>
+        <div className="rounded-xl border bg-background p-3"><p className="text-xs text-muted-foreground">Public</p><p className="text-lg font-semibold">{mb(usage.public_bytes)}</p></div>
+        <div className="rounded-xl border bg-background p-3"><p className="text-xs text-muted-foreground">Private (courses, downloads)</p><p className="text-lg font-semibold">{mb(usage.private_bytes)}</p></div>
+        <div className="rounded-xl border bg-background p-3"><p className="text-xs text-muted-foreground">Images / videos</p><p className="text-lg font-semibold">{usage.images} / {usage.videos}</p></div>
+      </div>
       <UploadDropzone />
       <form className="flex flex-wrap gap-2">
         <input name="q" defaultValue={sp.q} placeholder="Search filename or alt text" className="h-9 rounded-lg border bg-background px-3 text-sm" aria-label="Search" />
@@ -45,6 +53,7 @@ export default async function MediaPage({ searchParams }: { searchParams: Promis
                       <Field label="Category" name="category" defaultValue={m.category} />
                       <Submit variant="outline" className="h-8 text-xs">Save</Submit>
                     </ActionForm>
+                    {url && m.mime_type.startsWith("image/") && m.mime_type !== "image/gif" && <div className="mt-3"><FocalEditor id={m.id} url={url} alt={m.alt_text} x={Number(m.focal_x ?? 0.5)} y={Number(m.focal_y ?? 0.5)} /></div>}
                     {url && <p className="mt-2 break-all font-mono text-[10px] text-muted-foreground">{url}</p>}
                     <div className="mt-2"><ActionButton action={deleteMediaAction} fields={{ id: m.id }} label="Delete" variant="destructive" confirm="Delete this file?" /></div>
                   </details>
