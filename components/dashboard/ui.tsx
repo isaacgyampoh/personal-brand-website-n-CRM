@@ -16,6 +16,12 @@ export function PageTitle({ title, description, actions, back }: { title: string
 }
 
 export function LinkButton({ href, children, variant = "default", size = "default", className, ...rest }: { href: string; children: React.ReactNode; variant?: "default" | "outline" | "secondary" | "ghost" | "destructive" | "link"; size?: "default" | "sm" | "lg" | "xs"; className?: string; target?: string }) {
+  // API routes (exports, downloads, OAuth redirects) must be plain links: next/link would
+  // prefetch them on render, generating files and audit entries nobody asked for.
+  if (href.startsWith("/api/")) {
+    // eslint-disable-next-line @next/next/no-html-link-for-pages
+    return <a href={href} className={cn(buttonVariants({ variant, size }), className)} {...rest}>{children}</a>;
+  }
   return <Link href={href} className={cn(buttonVariants({ variant, size }), className)} {...rest}>{children}</Link>;
 }
 

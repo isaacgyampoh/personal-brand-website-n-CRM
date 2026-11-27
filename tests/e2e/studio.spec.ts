@@ -122,8 +122,12 @@ test.describe("finance, search & activity", () => {
   test("finance, search and activity pages render live data", async ({ page }) => {
     const errors = watchErrors(page);
     await login(page);
+    const exportCalls: string[] = [];
+    page.on("request", (r) => { if (r.url().includes("/api/admin/export/")) exportCalls.push(r.url()); });
     await page.goto("/admin/finance");
     await expect(page.getByRole("heading", { name: "Finance" })).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    expect(exportCalls, "exports must not be prefetched").toEqual([]);
     await expect(page.getByText("Net revenue")).toBeVisible();
     const csv = await page.request.get("/api/admin/export/finance?format=csv");
     expect(csv.status()).toBe(200);
