@@ -9,7 +9,9 @@ export function hashPassword(pw: string): string {
   return ["scrypt", 32768, 8, 1, salt.toString("base64"), hash.toString("base64")].join("$");
 }
 
-export const OWNER = { email: process.env.E2E_OWNER_EMAIL ?? "owner@example.com", password: process.env.E2E_OWNER_PASSWORD ?? "REDACTED-LOCAL-TEST-PASSWORD" };
+// Local test account only. The password comes from the environment, never from the repository.
+export const OWNER = { email: process.env.E2E_OWNER_EMAIL ?? "owner@example.com", password: process.env.E2E_OWNER_PASSWORD ?? "" };
+if (!OWNER.password) throw new Error("Set E2E_OWNER_PASSWORD (and E2E_OWNER_EMAIL) for the local test owner before running E2E tests.");
 export const DB_URL = process.env.E2E_DATABASE_URL ?? "postgres://localhost/brand_dev?host=/tmp";
 
 export async function sql<T = Record<string, unknown>>(query: string, params: unknown[] = []): Promise<T[]> {

@@ -138,6 +138,6 @@ describe("password policy", () => {
     expect(passwordProblems("Password123!")).not.toEqual([]);
     expect(passwordProblems("12345678901")).not.toEqual([]);
     expect(passwordProblems("ama.mensah2026", "ama.mensah@example.com")).not.toEqual([]);
-    expect(passwordProblems("REDACTED-LOCAL-TEST-PASSWORD")).toEqual([]);
+    expect(passwordProblems("Copper-Harbour-Kettle-7")).toEqual([]);
   });
 });
