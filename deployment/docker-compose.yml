@@ -1,34 +1,84 @@
-# Production / staging stack for Contabo. Joins the EXISTING shared reverse-proxy
-# network (Caddy) instead of starting another proxy. Adjust `proxy` network name
-# to match the server. Secrets come from an .env file that is never committed.
-name: brand-platform
+# Production / staging stack for the Contabo server. Joins the EXISTING shared
+# reverse-proxy network instead of starting another proxy; nothing else on the
+# server is modified. PostgreSQL runs privately on the internal network with no
+# published port. Secrets come from env files that are never committed.
+name: ${STACK_NAME:-brand-platform}
 
 services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-brand_platform}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-brand_admin}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_admin_password
+      APP_DB_PASSWORD_FILE: /run/secrets/app_db_password
+    secrets: [postgres_admin_password, app_db_password]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init-app-role.sh:/docker-entrypoint-initdb.d/10-app-role.sh:ro
+    networks: [internal]          # no `ports:` — never reachable from outside the stack
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 1G }
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "5" } }
+
+  worker:
+    image: ${IMAGE_PREFIX:-brand-platform}:worker-${RELEASE:-latest}
+    build: { context: .., target: worker }
+    env_file: ["${ENV_FILE:-.env.production}"]
+    environment:
+      INTERNAL_APP_URL: http://web:3000
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [internal]
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 384M }
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "5" } }
+
   web:
     image: ${IMAGE_PREFIX:-brand-platform}:web-${RELEASE:-latest}
     build: { context: .., target: web }
-    env_file: ${ENV_FILE:-.env.production}
+    env_file: ["${ENV_FILE:-.env.production}"]
     restart: unless-stopped
     depends_on:
+      postgres: { condition: service_healthy }
       worker: { condition: service_started }
+    volumes:
+      - media:/app/.data/storage    # only used until Cloudflare R2 is connected
     networks: [proxy, internal]
     deploy:
       resources:
         limits: { cpus: "1.0", memory: 768M }
     logging: { driver: json-file, options: { max-size: "10m", max-file: "5" } }
 
-  worker:
+  # One-off operational tasks (backups, restore tests, provisioning):
+  #   docker compose --profile tools run --rm tools <command>
+  tools:
     image: ${IMAGE_PREFIX:-brand-platform}:worker-${RELEASE:-latest}
-    build: { context: .., target: worker }
-    env_file: ${ENV_FILE:-.env.production}
-    environment:
-      INTERNAL_APP_URL: http://web:3000
-    restart: unless-stopped
+    profiles: [tools]
+    env_file: ["${ENV_FILE:-.env.production}", "${BACKUP_ENV_FILE:-.env.backup}"]
+    volumes:
+      - ${BACKUP_DIR:-/var/backups/brand-platform}:/backups
     networks: [internal]
-    deploy:
-      resources:
-        limits: { cpus: "0.5", memory: 384M }
-    logging: { driver: json-file, options: { max-size: "10m", max-file: "5" } }
+    command: ["sh", "-c", "echo 'usage: docker compose --profile tools run --rm tools <command>'"]
+
+volumes:
+  pgdata: {}
+  media: {}
+
+secrets:
+  postgres_admin_password:
+    file: ./secrets/postgres_admin_password
+  app_db_password:
+    file: ./secrets/app_db_password
 
 networks:
   internal: {}

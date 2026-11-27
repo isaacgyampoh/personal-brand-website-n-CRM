@@ -46,3 +46,9 @@ next-env.d.ts
 /playwright-report/
 /backups/
 !.env.example
+
+# Deployment secrets (never commit)
+deployment/secrets/
+deployment/.env.*
+!deployment/.env.example
+/backups/

@@ -31,7 +31,8 @@ CMD ["node", "server.js"]
 FROM deps AS worker
 WORKDIR /app
 ENV NODE_ENV=production
-RUN addgroup -S app && adduser -S app -G app
+# Database client + openssl for encrypted backups and restore verification (tools profile).
+RUN apk add --no-cache postgresql17-client openssl bash && addgroup -S app && adduser -S app -G app
 COPY --chown=app:app . .
 USER app
 # Runs pending migrations, then the worker loop (safe to run more than one replica).
