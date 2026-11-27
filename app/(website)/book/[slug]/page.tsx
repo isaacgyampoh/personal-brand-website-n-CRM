@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getPublicServices } from "@/features/website/application/public-queries";
 import { getPublicSettings } from "@/lib/cache";
 import { paymentsReady } from "@/features/payments/application/gateway";
@@ -19,6 +19,8 @@ export default async function BookServicePage({ params }: Props) {
   const { slug } = await params;
   const [services, settings] = await Promise.all([getPublicServices(), getPublicSettings()]);
   const s = services.find((x) => x.slug === slug);
+  // Enquiry-only services: send visitors to the enquiry form rather than a dead end.
+  if (s && s.bookingMode === "enquiry") redirect(`/contact?service=${encodeURIComponent(s.slug)}`);
   if (!s || s.bookingMode !== "instant") notFound();
   const canPay = s.priceMinor === 0 || (await paymentsReady());
   return (
