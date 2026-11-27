@@ -47,6 +47,8 @@ export const settingSchemas = {
     country: z.string().trim().max(80).default("Ghana"),
     bookingNote: z.string().trim().max(300).default(""),
     businessHours: z.string().trim().max(300).default(""),
+    /** International format, e.g. +233 24 000 0000. Shown as a click-to-chat link (no WhatsApp API). */
+    whatsapp: z.string().trim().max(32).default(""),
   }),
   social: z.object({
     linkedin: url.default(""),

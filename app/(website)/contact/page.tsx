@@ -32,10 +32,11 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             ))}
             <Link href="/speaking#enquire" className="flex min-h-12 items-center justify-between border-b border-[var(--line)] py-3">Speaking invitation<span aria-hidden>→</span></Link>
           </nav>
-          {(s.contact.email || s.contact.phone || s.contact.address) && (
+          {(s.contact.email || s.contact.phone || s.contact.whatsapp || s.contact.address) && (
             <dl className="space-y-4 text-sm">
               {s.contact.email && <div><dt className="eyebrow">Email</dt><dd className="mt-1"><EmailLink email={s.contact.email} className="underline-offset-4 hover:underline" /></dd></div>}
               {s.contact.phone && <div><dt className="eyebrow">Phone</dt><dd className="mt-1"><a href={`tel:${s.contact.phone.replace(/\s/g, "")}`}>{s.contact.phone}</a></dd></div>}
+              {s.contact.whatsapp && <div><dt className="eyebrow">WhatsApp</dt><dd className="mt-1"><a href={`https://wa.me/${s.contact.whatsapp.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">Chat on WhatsApp</a></dd></div>}
               {s.contact.address && <div><dt className="eyebrow">Studio</dt><dd className="mt-1">{[s.contact.address, s.contact.city, s.contact.country].filter(Boolean).join(", ")}</dd></div>}
             </dl>
           )}

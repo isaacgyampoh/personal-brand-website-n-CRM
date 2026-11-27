@@ -76,7 +76,8 @@ export default async function BusinessProfile() {
 
       <Panel title="Contact & social media" actions={<Done ok={!contact.length} missing={contact} />}>
         <SettingsForm settingKey="contact" initial={s.contact} fields={[
-          { name: "email", label: "Business email", type: "email" }, { name: "phone", label: "Telephone / WhatsApp number", type: "text" },
+          { name: "email", label: "Business email", type: "email" }, { name: "phone", label: "Telephone number", type: "text" },
+          { name: "whatsapp", label: "WhatsApp number (with country code, e.g. +233…)", type: "text" },
           { name: "address", label: "Business address", type: "text" }, { name: "city", label: "City", type: "text" },
           { name: "country", label: "Country", type: "text" }, { name: "businessHours", label: "Business hours", type: "text", hint: "e.g. Mon–Fri, 9am–5pm GMT" },
         ]} />

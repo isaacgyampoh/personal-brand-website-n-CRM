@@ -20,11 +20,12 @@ export async function onboardingSteps(userId: string): Promise<OnboardingStep[]>
   const [s, st, c, me, legal] = await Promise.all([
     loadSettings(),
     integrationStatuses(),
-    db.one<{ services: number; priced: number; bookable: number; hours: number; events: number; photos: number; staff_mfa_missing: number; demo: number; home: boolean }>(
+    db.one<{ services: number; priced: number; bookable: number; hours: number; testimonials: number; events: number; photos: number; staff_mfa_missing: number; demo: number; home: boolean }>(
       `select (select count(*) from services where is_active)::int as services,
               (select count(*) from services where is_active and (price_minor > 0 or price_display not in ('', 'Price on enquiry')))::int as priced,
               (select count(*) from services where is_active and booking_mode = 'instant')::int as bookable,
               (select count(*) from availability_rules)::int as hours,
+              (select count(*) from testimonials where status = 'approved')::int as testimonials,
               (select count(*) from events where status = 'published' and slug not like 'demo-%')::int as events,
               (select count(*) from media_assets where deleted_at is null and mime_type like 'image/%' and visibility = 'public' and category not in ('partners'))::int as photos,
               (select count(*) from users where role <> 'customer' and status = 'active' and mfa_enabled_at is null)::int as staff_mfa_missing,
@@ -39,7 +40,7 @@ export async function onboardingSteps(userId: string): Promise<OnboardingStep[]>
   const brandMissing = need([["logo (optional — your name is used as a wordmark until then)", s.brand.logoUrl], ["profile photograph", s.brand.portraitUrl], ["social sharing image", s.seo.ogImageUrl]]);
   if (n.photos < 3) brandMissing.push(`${3 - n.photos} more photograph(s)`);
   const bioMissing = need([["short biography", s.brand.shortBio], ["full biography", s.profile.longBio], ["areas of expertise", s.profile.expertise]]);
-  const socialMissing = need([["business email", s.contact.email], ["LinkedIn profile link", s.social.linkedin]]);
+  const socialMissing = need([["business email", s.contact.email], ["phone or WhatsApp number", s.contact.phone || s.contact.whatsapp], ["LinkedIn profile link", s.social.linkedin]]);
   const unpublishedLegal = legal.filter((l) => l.status !== "published").map((l) => l.title);
   const brandStepDone = Boolean(s.brand.portraitUrl) && Boolean(s.seo.ogImageUrl) && n.photos >= 3;
   return [
@@ -90,6 +91,12 @@ export async function onboardingSteps(userId: string): Promise<OnboardingStep[]>
       why: "Flyer, date, price and a shareable link in a few minutes.",
       how: ["Fill in the six short steps, preview, then publish.", "Copy the link and share it on LinkedIn or WhatsApp."],
       done: n.events > 0, missing: n.events > 0 ? [] : ["your first masterclass"], optional: true,
+    },
+    {
+      key: "testimonials", title: "Testimonials (optional)", action: "Open Testimonials", href: "/admin/proof",
+      why: "Genuine words from clients build trust. The testimonials section stays hidden until you approve one.",
+      how: ["Open a past client in Contacts and press \"Send testimonial request\", or add one you've received with their permission.", "Approve it in Testimonials & press — only then does it appear on the website."],
+      done: n.testimonials > 0, missing: n.testimonials > 0 ? [] : ["at least one approved testimonial"], optional: true,
     },
     {
       key: "paystack", title: "8. Payments (Paystack)", action: "Open Integrations", href: "/admin/settings/integrations#paystack",

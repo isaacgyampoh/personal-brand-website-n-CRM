@@ -36,6 +36,9 @@ export default async function LinksPage() {
           {next && (
             <li><Link href={`/masterclasses/${next.slug}`} className="block border border-[var(--brand-accent)] bg-[var(--brand-accent)] px-5 py-4 text-center text-[var(--brand-accent-ink)]"><span className="eyebrow block !text-[inherit] opacity-80">Next masterclass</span><span className="mt-1 block font-semibold">{next.title}</span></Link></li>
           )}
+          {s.contact.whatsapp && (
+            <li><a href={`https://wa.me/${s.contact.whatsapp.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer" className="flex min-h-14 items-center justify-center border border-[var(--line)] bg-[var(--surface)] px-5 py-4 text-center font-semibold hover:border-[var(--ink)]">Chat on WhatsApp</a></li>
+          )}
           {items.map((l, i) => (
             <li key={i}>
               <Link href={l.href} className={`flex min-h-14 items-center justify-center border px-5 py-4 text-center font-semibold transition-colors ${l.highlight ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]" : "border-[var(--line)] bg-[var(--surface)] hover:border-[var(--ink)]"}`}>{l.label}</Link>

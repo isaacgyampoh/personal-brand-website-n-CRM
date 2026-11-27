@@ -18,6 +18,13 @@ Everything is done in your browser at **/admin**. You never need to touch code o
 | Create a masterclass | **Masterclasses → Quick masterclass** — six steps, then *Publish* and *Copy link* |
 | See and manage bookings | **Bookings** (reschedule, cancel, add a meeting link) |
 | See registrations and check people in | **Masterclasses** → open one → *Attendees* |
+| Partner organisations, gallery photos, homepage sections | **Website** → Home → edit the *Logos*, *Gallery* or any section (add, reorder, hide) → **Publish** |
+| Achievements, expertise, qualifications | **Business profile** → Personal & professional (one item per line) |
+| Speaking engagements and topics | **Testimonials & press** (engagements) and the Speaking page in **Website** |
+| WhatsApp number | **Business profile** → Contact (adds a "Chat on WhatsApp" link) |
+| Privacy, Terms, Refund, Cancellation policies | **Business profile** → Policies → Edit → Publish |
+| Email wording (confirmations, reminders) | **Business settings → Email templates** |
+| Testimonials | **Testimonials & press** — approve only genuine testimonials given with permission |
 | Look up a client | **Search** box at the top of the menu, or **Contacts** |
 | Write an article | **Content → New article** |
 | See money in and out, download Excel | **Finance** |
