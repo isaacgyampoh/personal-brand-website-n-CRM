@@ -11,6 +11,10 @@ ENV_FILE="${ENV_FILE:-.env.production}"
 export RELEASE ENV_FILE
 
 echo "== preflight"
+# The postgres container reads its password files as its own user (uid 70 in postgres:alpine).
+for f in secrets/postgres_admin_password secrets/app_db_password; do
+  [ "$(stat -L -c %u "$f" 2>/dev/null || echo 70)" = "70" ] || echo "WARNING: $f should be owned by uid 70 (sudo chown 70:70 $f) or PostgreSQL cannot read it"
+done
 for f in "$ENV_FILE" .env.backup secrets/postgres_admin_password secrets/app_db_password; do
   [ -f "$f" ] || { echo "Missing deployment/$f — see docs/DEPLOYMENT.md (templates: .env.production.example, .env.backup.example)"; exit 1; }
 done
@@ -25,7 +29,7 @@ docker compose build
 
 echo "== database"
 docker compose up -d postgres
-for i in $(seq 1 30); do docker compose exec -T postgres pg_isready -q && break; sleep 2; done
+for i in $(seq 1 30); do docker compose exec -T postgres sh -c 'pg_isready -q -U "$POSTGRES_USER" -d "$POSTGRES_DB"' && break; sleep 2; done
 
 if docker compose --profile tools run --rm -T tools sh -c 'psql "$DATABASE_URL" -Atc "select to_regclass($$public.users$$) is not null" | grep -q t'; then
   echo "== pre-deploy backup"

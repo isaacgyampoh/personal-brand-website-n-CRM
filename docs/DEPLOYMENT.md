@@ -28,7 +28,7 @@ git clone <repo> /opt/brand-platform && cd /opt/brand-platform/deployment
 mkdir -p secrets && chmod 700 secrets
 openssl rand -base64 36 | tr -d '\n' > secrets/postgres_admin_password
 openssl rand -base64 36 | tr -d '\n' > secrets/app_db_password
-chmod 600 secrets/*
+chmod 600 secrets/* && sudo chown 70:70 secrets/*   # readable only by the postgres container user
 cp .env.production.example .env.production   # APP_URL, APP_SECRET, DATABASE_URL (brand_app + app_db_password),
                                              # CREDENTIALS_MASTER_KEYS, STAFF_MFA_REQUIRED=true, PAYMENTS_LIVE_APPROVED=false
 cp .env.backup.example .env.backup           # BACKUP_PASSPHRASE, ADMIN_DATABASE_URL, BACKUP_R2_* (backup-only bucket + token)
