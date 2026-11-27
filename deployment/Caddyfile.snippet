@@ -2,6 +2,11 @@
 # use Full (strict) SSL. Caddy obtains/renews certificates automatically.
 {$SITE_DOMAIN} {
 	encode zstd gzip
+	# Stop Cloudflare from rewriting HTML (Email Obfuscation breaks CSP + React hydration)
+	@pages not path /_next/static/* /media/*
+	header @pages Cache-Control "private, no-cache, no-store, max-age=0, must-revalidate, no-transform" {
+		defer
+	}
 	@static path /_next/static/*
 	header @static Cache-Control "public, max-age=31536000, immutable"
 	reverse_proxy brand-platform-web-1:3000 {

@@ -4,6 +4,7 @@ import { getPublicSettings } from "@/lib/cache";
 import { PageHeader } from "@/components/website/page-header";
 import { EnquiryForm } from "@/components/website/enquiry-form";
 import { SocialLinks } from "@/components/website/social-links";
+import { EmailLink, EmailText } from "@/components/shared/email-text";
 
 export const metadata: Metadata = { title: "Contact", alternates: { canonical: "/contact" } };
 
@@ -33,7 +34,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           </nav>
           {(s.contact.email || s.contact.phone || s.contact.address) && (
             <dl className="space-y-4 text-sm">
-              {s.contact.email && <div><dt className="eyebrow">Email</dt><dd className="mt-1"><a href={`mailto:${s.contact.email}`} className="underline-offset-4 hover:underline">{s.contact.email}</a></dd></div>}
+              {s.contact.email && <div><dt className="eyebrow">Email</dt><dd className="mt-1"><EmailLink email={s.contact.email} className="underline-offset-4 hover:underline" /></dd></div>}
               {s.contact.phone && <div><dt className="eyebrow">Phone</dt><dd className="mt-1"><a href={`tel:${s.contact.phone.replace(/\s/g, "")}`}>{s.contact.phone}</a></dd></div>}
               {s.contact.address && <div><dt className="eyebrow">Studio</dt><dd className="mt-1">{[s.contact.address, s.contact.city, s.contact.country].filter(Boolean).join(", ")}</dd></div>}
             </dl>

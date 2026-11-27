@@ -30,6 +30,9 @@ export function proxy(request: NextRequest) {
   headers.set("Content-Security-Policy", csp);
   const response = NextResponse.next({ request: { headers } });
   response.headers.set("Content-Security-Policy", csp);
+  // Behind Cloudflare: forbid content rewriting (e.g. Email Address Obfuscation injects a
+  // script our CSP blocks and changes text, breaking React hydration).
+  response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate, no-transform");
   return response;
 }
 

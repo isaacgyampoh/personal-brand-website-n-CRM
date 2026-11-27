@@ -6,7 +6,8 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "tests/e2e",
-  timeout: 60_000,
+  // Against an MFA-enforcing deployment each staff sign-in may wait for a fresh 30 s TOTP window.
+  timeout: process.env.E2E_MFA_ENFORCED === "1" ? 180_000 : 60_000,
   fullyParallel: false,
   workers: 1,
   retries: 0,

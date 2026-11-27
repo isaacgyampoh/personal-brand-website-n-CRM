@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/session";
 import { portalOverview } from "@/features/portal/application/portal";
 import { formatDateTime } from "@/lib/time";
+import { EmailLink, EmailText } from "@/components/shared/email-text";
 
 export const metadata = { title: "Overview" };
 
@@ -18,7 +19,7 @@ export default async function PortalHome() {
       {empty && (
         <div className="card-frame p-8">
           <p className="display-sm">Nothing here yet.</p>
-          <p className="mt-2 text-[var(--muted-ink)]">Bookings, masterclasses, courses and downloads made with <strong>{user.email}</strong> appear here automatically.</p>
+          <p className="mt-2 text-[var(--muted-ink)]">Bookings, masterclasses, courses and downloads made with <strong><EmailText email={user.email} /></strong> appear here automatically.</p>
           <div className="mt-6 flex flex-wrap gap-4"><Link href="/book" className="btn btn-primary">Book a session</Link><Link href="/masterclasses" className="btn btn-link">Upcoming masterclasses</Link></div>
         </div>
       )}

@@ -3,6 +3,7 @@ import { getPublicAppearances } from "@/features/website/application/public-quer
 import { getPublicSettings } from "@/lib/cache";
 import { PageHeader, EmptyState } from "@/components/website/page-header";
 import { EnquiryForm } from "@/components/website/enquiry-form";
+import { EmailLink, EmailText } from "@/components/shared/email-text";
 
 export const metadata: Metadata = { title: "Press & media", alternates: { canonical: "/media" } };
 
@@ -37,7 +38,7 @@ export default async function MediaPage() {
       </div>
       <section className="tone-surface section-y-sm">
         <div className="site-container grid gap-12 lg:grid-cols-12">
-          <div className="lg:col-span-4"><h2 className="display-md">Media kit & interview requests</h2><p className="mt-4 text-[var(--muted-ink)]">{s.contact.email ? <>Or email <a className="underline" href={`mailto:${s.contact.email}`}>{s.contact.email}</a>.</> : "We'll respond with the current media kit and availability."}</p></div>
+          <div className="lg:col-span-4"><h2 className="display-md">Media kit & interview requests</h2><p className="mt-4 text-[var(--muted-ink)]">{s.contact.email ? <>Or email <EmailLink email={s.contact.email} className="underline" />.</> : "We'll respond with the current media kit and availability."}</p></div>
           <div className="lg:col-span-7 lg:col-start-6"><EnquiryForm form="media" showOrg submitLabel="Request media kit" /></div>
         </div>
       </section>

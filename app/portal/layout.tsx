@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth/session";
 import { FONT_PAIRS } from "@/lib/fonts";
 import { attachVerifiedUser } from "@/features/crm/application/contacts";
 import { PortalNav } from "@/components/portal/portal-nav";
+import { EmailLink, EmailText } from "@/components/shared/email-text";
 
 export const metadata: Metadata = { title: { default: "Your portal", template: "%s · Portal" }, robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ export default async function PortalLayout({ children }: { children: React.React
           <Link href="/" className="font-display text-2xl">{s.brand.name}</Link>
           <div className="flex items-center gap-4 text-sm">
             {user.isStaff && <Link href="/admin" className="hidden underline-offset-4 hover:underline sm:inline">Studio</Link>}
-            <span className="hidden text-[var(--muted-ink)] sm:inline">{user.fullName || user.email}</span>
+            <span className="hidden text-[var(--muted-ink)] sm:inline">{user.fullName || <EmailText email={user.email} />}</span>
             <form action="/auth/logout" method="post"><button className="underline-offset-4 hover:underline">Sign out</button></form>
           </div>
         </div>

@@ -3,6 +3,7 @@ import type { Settings } from "@/features/settings/domain/schemas";
 import { NewsletterForm } from "./newsletter-form";
 import { SocialLinks } from "./social-links";
 import { Emphasis } from "./emphasis";
+import { EmailLink, EmailText } from "@/components/shared/email-text";
 
 export function SiteFooter({ settings: s }: { settings: Settings }) {
   const year = new Date().getFullYear();
@@ -43,7 +44,7 @@ export function SiteFooter({ settings: s }: { settings: Settings }) {
           <div className="flex flex-col gap-5 md:items-end">
             <SocialLinks social={s.social} />
             {s.contact.email && (
-              <a href={`mailto:${s.contact.email}`} className="text-sm opacity-80 hover:opacity-100">{s.contact.email}</a>
+              <EmailLink email={s.contact.email} className="text-sm opacity-80 hover:opacity-100" />
             )}
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { hashPassword, login, sql, unique, watchErrors } from "./helpers";
+import { hashPassword, login, MFA_ENFORCED, sql, unique, watchErrors } from "./helpers";
 
 test.describe("authentication & authorisation", () => {
   test("anonymous users are redirected from admin and portal", async ({ page }) => {
@@ -42,10 +42,18 @@ test.describe("authentication & authorisation", () => {
 
     // Promote to content manager: website yes, payments no.
     await sql("update users set role = 'content_manager' where email = $1", [email]);
-    await page.goto("/admin/content");
-    await expect(page.getByRole("heading", { name: "Content studio" })).toBeVisible();
-    await page.goto("/admin/payments");
-    await expect(page).toHaveURL(/\/admin\?denied=1/);
+    if (MFA_ENFORCED) {
+      // Production rule: staff without two-factor authentication get no permissions until they enrol.
+      await page.goto("/admin/content");
+      await expect(page).toHaveURL(/\/admin\/security\?setup=1/);
+      await page.goto("/admin/payments");
+      await expect(page).toHaveURL(/\/admin\/security\?setup=1/);
+    } else {
+      await page.goto("/admin/content");
+      await expect(page.getByRole("heading", { name: "Content studio" })).toBeVisible();
+      await page.goto("/admin/payments");
+      await expect(page).toHaveURL(/\/admin\?denied=1/);
+    }
     await sql("delete from sessions where user_id = (select id from users where email = $1)", [email]);
   });
 
