@@ -111,9 +111,9 @@ export async function onboardingSteps(userId: string): Promise<OnboardingStep[]>
     },
     {
       key: "email", title: "9. Email", action: "Open Integrations", href: "/admin/settings/integrations#smtp",
-      why: "Booking confirmations, receipts and reminders are sent from your own address.",
-      how: ["Get the SMTP details (server, port, username, app password) from your email provider.", "Enter them in the Email card, press Test connection, then send a test email to yourself."],
-      done: st.smtp === "connected", missing: st.smtp === "connected" ? [] : ["SMTP email details"],
+      why: "Booking confirmations, receipts, reminders and password resets are sent from your own Gmail address.",
+      how: ["Turn on 2-Step Verification in your Google account, then create an App Password (the Email card links straight to it).", "Paste your Gmail address and the 16-letter App Password into Connect Gmail, then send yourself a test email."],
+      done: st.smtp === "connected", missing: st.smtp === "connected" ? [] : ["connect your Gmail"],
     },
     {
       key: "legal", title: "10. Review legal policies", action: "Open Business profile", href: "/admin/settings/profile",

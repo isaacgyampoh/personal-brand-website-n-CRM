@@ -34,7 +34,7 @@ export default async function SettingsPage() {
       <Panel title="Email sender"><SettingsForm settingKey="email" initial={s.email} fields={[
         { name: "fromName", label: "Sender name", type: "text" }, { name: "replyTo", label: "Reply-to address", type: "email" },
         { name: "adminAlertEmail", label: "Where to send business alerts", type: "email" }, { name: "footerText", label: "Email footer", type: "textarea" },
-        { name: "dailyLimit", label: "Daily sending limit (your email plan's allowance; 0 = none)", type: "text", hint: `Sent today: ${sentToday}. Brevo's free plan allows 300 a day — at the limit, emails wait until tomorrow and password resets and confirmations are kept ahead of newsletters.` },
+        { name: "dailyLimit", label: "Automated emails per 24 hours (0 = no limit)", type: "text", hint: `Sent in the last 24 hours: ${sentToday}. 200 is a safe limit for a Gmail account — at the limit, emails wait until there is room again, and confirmations, receipts and password resets go before anything else.` },
       ]} /></Panel>
       <Panel title="Features"><SettingsForm settingKey="features" initial={s.features} fields={[
         { name: "shop", label: "Digital shop", type: "checkbox" }, { name: "academy", label: "Academy", type: "checkbox" }, { name: "assessment", label: "Brand assessment", type: "checkbox" },

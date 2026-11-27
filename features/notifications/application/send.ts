@@ -4,7 +4,7 @@ import { enqueue } from "@/lib/jobs/queue";
 import { env } from "@/lib/config/env";
 import { loadSettings } from "@/features/settings/application/settings";
 import { DEFAULT_TEMPLATES, escapeHtml, renderEmail } from "../domain/templates";
-import { emailTransport } from "../infrastructure/email-transport";
+import { classifySmtpError, emailTransport, usingPersonalGmail } from "../infrastructure/email-transport";
 import { sendSms } from "../infrastructure/sms-mnotify";
 
 export type EmailRequest = {
@@ -83,6 +83,10 @@ export async function deliverEmail(payload: {
   }
 
   const settings = await loadSettings();
+  if (payload.marketing && (await usingPersonalGmail())) {
+    await db.query("update notifications set status = 'skipped', error = $2 where id = $1", [n.id, "Newsletters are not sent from a personal Gmail account. Connect a business email provider to send campaigns."]);
+    return;
+  }
   if (await deferredByDailyLimit(n.id, settings.email.dailyLimit, Boolean(payload.marketing), payload)) return;
 
   await db.query("update notifications set status = 'sending' where id = $1", [n.id]);
@@ -134,17 +138,29 @@ export async function deliverEmail(payload: {
       [n.id, rendered.subject, result.provider, result.messageId],
     );
   } catch (error) {
-    await db.query("update notifications set status = 'failed', error = $2 where id = $1", [
-      n.id,
-      (error as Error).message.slice(0, 1000),
-    ]);
+    const message = (error as Error).message.slice(0, 1000);
+    const kind = classifySmtpError(message);
+    if (kind === "throttled") {
+      // The provider (e.g. Gmail) is limiting sending: wait an hour instead of failing.
+      const later = new Date(Date.now() + 3600_000);
+      await db.query("update notifications set status = 'queued', error = $2 where id = $1", [n.id, `waiting: the email provider is limiting sending — retrying after ${later.toISOString()}`]);
+      await enqueue("notification.email", payload, { runAt: later, idempotencyKey: `notification:${n.id}:throttled:${later.toISOString().slice(0, 13)}`, maxAttempts: 6 });
+      await db.query(`insert into tasks (title, notes, priority, dedupe_key) values ($1, $2, 'normal', $3) on conflict (dedupe_key) do nothing`,
+        ["Email sending is being limited", "Your email provider asked us to slow down. Emails are waiting and will be sent automatically — nothing is lost.", `email-throttled:${new Date().toISOString().slice(0, 10)}`]);
+      return;
+    }
+    await db.query("update notifications set status = 'failed', error = $2 where id = $1", [n.id, message]);
+    if (kind === "auth") {
+      await db.query(`insert into tasks (title, notes, priority, dedupe_key) values ($1, $2, 'high', $3) on conflict (dedupe_key) do nothing`,
+        ["Email login was rejected — reconnect your email", "The email account refused the saved password (for Gmail: the App Password was revoked or 2-Step Verification was turned off). Open Settings → Integrations → Email and enter a new App Password. Failed emails will retry automatically.", `email-auth:${new Date().toISOString().slice(0, 10)}`]);
+    }
     throw error; // let the queue retry with backoff
   }
 }
 
-/** Emails handed to the provider since 00:00 UTC (the provider's daily window). */
+/** Emails handed to the provider in the last 24 hours (rolling window, as Gmail counts them). */
 export async function emailsSentToday(): Promise<number> {
-  const r = await db.one<{ n: number }>("select count(*)::int as n from notifications where channel = 'email' and sent_at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'");
+  const r = await db.one<{ n: number }>("select count(*)::int as n from notifications where channel = 'email' and sent_at > now() - interval '24 hours'");
   return r?.n ?? 0;
 }
 
@@ -152,8 +168,8 @@ export async function emailsSentToday(): Promise<number> {
 const TRANSACTIONAL_RESERVE = 50;
 
 /**
- * Respects the email provider's free daily allowance: at the limit the email waits
- * for the next day (00:05 UTC) instead of failing; marketing stops earlier so
+ * Respects the sending allowance (rolling 24 hours): at the limit the email waits
+ * until a slot frees up instead of failing; newsletters stop earlier so
  * transactional mail always has room. Warns the owner once a day at 80%.
  */
 async function deferredByDailyLimit(id: string, limit: number, marketing: boolean, payload: Record<string, unknown>): Promise<boolean> {
@@ -163,14 +179,16 @@ async function deferredByDailyLimit(id: string, limit: number, marketing: boolea
   if (sent >= Math.floor(limit * 0.8)) {
     await db.query(
       `insert into tasks (title, notes, priority, dedupe_key) values ($1, $2, 'high', $3) on conflict (dedupe_key) do nothing`,
-      ["Email allowance nearly used", `${sent} of ${limit} emails sent today (provider's free daily limit). Further emails wait until tomorrow; nothing is upgraded automatically.`, `email-limit:${day}`],
+      ["Email allowance nearly used", `${sent} of ${limit} automated emails sent in the last 24 hours. Further emails wait until there is room again — nothing is lost and nothing is upgraded automatically.`, `email-limit:${day}`],
     );
   }
   const cap = marketing ? Math.max(0, limit - TRANSACTIONAL_RESERVE) : limit;
   if (sent < cap) return false;
-  const next = new Date(`${day}T00:05:00Z`); next.setUTCDate(next.getUTCDate() + 1);
-  await db.query("update notifications set status = 'queued', error = $2 where id = $1", [id, `waiting: daily email limit (${limit}) reached — sends after ${next.toISOString()}`]);
-  await enqueue("notification.email", payload, { runAt: next, idempotencyKey: `notification:${id}:${day}`, maxAttempts: 6 });
+  // The next slot frees up 24 hours after the oldest email in the window.
+  const oldest = await db.one<{ at: Date }>("select min(sent_at) as at from notifications where channel = 'email' and sent_at > now() - interval '24 hours'");
+  const next = new Date((oldest?.at ? new Date(oldest.at).getTime() : Date.now()) + 24 * 3600_000 + 60_000);
+  await db.query("update notifications set status = 'queued', error = $2 where id = $1", [id, `waiting: ${limit} emails per 24 hours reached — sends after ${next.toISOString()}`]);
+  await enqueue("notification.email", payload, { runAt: next, idempotencyKey: `notification:${id}:${next.toISOString().slice(0, 16)}`, maxAttempts: 6 });
   return true;
 }
 

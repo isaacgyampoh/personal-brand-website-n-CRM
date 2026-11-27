@@ -114,8 +114,8 @@ export const INTEGRATIONS: IntegrationDef[] = [
     ],
   },
   {
-    provider: "smtp", name: "Email (SMTP)", category: "Communication", optional: false, modes: false,
-    summary: "Sends confirmations, receipts, reminders, password resets and campaigns from your own email account.",
+    provider: "smtp", name: "Email", category: "Communication", optional: false, modes: false,
+    summary: "Sends booking and registration confirmations, receipts, reminders and password resets from your own email address (Gmail works).",
     fields: [
       { name: "host", label: "SMTP server", type: "text", required: true, placeholder: "smtp.yourprovider.com" },
       { name: "port", label: "Port", type: "number", default: "587", required: true },
@@ -129,9 +129,9 @@ export const INTEGRATIONS: IntegrationDef[] = [
       { name: "replyTo", label: "Reply-to address", type: "email" },
     ],
     steps: [
-      "Use your business mailbox (Google Workspace, Microsoft 365, Zoho) or a sending service (Brevo, Postmark, Amazon SES).",
-      "For Google/Microsoft accounts with 2-step verification, create an app password and use it here.",
-      "Make sure the sender domain has SPF and DKIM records (your provider shows them).",
+      "For Gmail, use the Connect Gmail section above instead — it fills in everything for you.",
+      "For another provider, enter the SMTP server, port, username and password (or app password) it gives you.",
+      "If you send from your own domain, make sure it has SPF and DKIM records (your provider shows them).",
       "Save, Test connection, then send yourself a test email.",
     ],
   },

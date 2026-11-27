@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useCallback, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -16,28 +16,39 @@ type FormAction = (prev: ActionResult<unknown> | null, fd: FormData) => Promise<
 export function ActionForm({ action, children, className, success = "Saved", resetOnSuccess = false, confirm }: {
   action: FormAction; children: React.ReactNode; className?: string; success?: string | false; resetOnSuccess?: boolean; confirm?: string;
 }) {
-  const [state, formAction] = useActionState(action, null);
   const router = useRouter();
   const ref = useRef<HTMLFormElement>(null);
-  useEffect(() => {
-    if (!state) return;
-    if (state.ok) {
-      const data = state.data as { redirect?: string } | undefined;
-      if (success) toast.success(state.message ?? success);
-      if (resetOnSuccess) ref.current?.reset();
+  // The outcome is announced as soon as the action finishes — not in an effect after
+  // rendering. Toggle buttons (Publish ⇄ Unpublish, On ⇄ Off) are replaced by their
+  // counterpart in the same update that delivers the result, so an effect would never
+  // run (no message) or would run on the new button (wrong message). The message used
+  // is the one of the button that was actually pressed.
+  const pressed = useRef<{ success: string | false; resetOnSuccess: boolean }>({ success, resetOnSuccess });
+  const run = useCallback(async (prev: ActionResult<unknown> | null, fd: FormData) => {
+    const { success: msg, resetOnSuccess: reset } = pressed.current;
+    const result = await action(prev, fd);
+    if (result.ok) {
+      const data = result.data as { redirect?: string } | undefined;
+      if (msg) toast.success(result.message ?? msg);
+      if (reset) ref.current?.reset();
       if (data?.redirect) router.push(data.redirect);
       else router.refresh();
     } else {
-      toast.error(state.error);
+      toast.error(result.error || "Something went wrong. Please try again.");
     }
-  }, [state, router, success, resetOnSuccess]);
+    return result;
+  }, [action, router]);
+  const [state, formAction] = useActionState(run, null);
   const errors = state && !state.ok ? state.fieldErrors ?? {} : {};
   return (
     <form
       ref={ref}
       action={formAction}
       className={className}
-      onSubmit={(e) => { if (confirm && !window.confirm(confirm)) e.preventDefault(); }}
+      onSubmit={(e) => {
+        if (confirm && !window.confirm(confirm)) { e.preventDefault(); return; }
+        pressed.current = { success, resetOnSuccess };
+      }}
       data-errors={JSON.stringify(errors)}
     >
       <FieldErrorsContext errors={errors} />

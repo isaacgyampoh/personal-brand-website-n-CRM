@@ -7,11 +7,12 @@
  *   tsx scripts/offsite.ts prune <days>         delete off-site backups older than <days>
  *   tsx scripts/offsite.ts mirror <days>        copy new media objects (BACKUP_MEDIA_BUCKETS) into media/<bucket>/;
  *                                               copies of deleted media are kept <days> days, then removed
+ *   tsx scripts/offsite.ts download <key> <dir>  fetch one off-site object (restore tests / disaster recovery)
  *   tsx scripts/offsite.ts list
  */
 import { createReadStream, readFileSync, statSync } from "node:fs";
 import { basename } from "node:path";
-import { CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const need = (k: string) => { const v = process.env[k]; if (!v) throw new Error(`${k} is required`); return v; };
 const bucket = need("BACKUP_R2_BUCKET");
@@ -60,28 +61,56 @@ async function prune(days: number) {
   console.log(`pruned ${n} object(s) older than ${days} days; ${dumps.length} backup(s) were present`);
 }
 
-/** Server-side copy of the client's media buckets into the private backup bucket (same account, no download). */
+/**
+ * Copies the client's media buckets into the private backup bucket. Works with
+ * bucket-scoped keys: reads with the media key (BACKUP_MEDIA_R2_*, read access to the
+ * media buckets) and writes with the backup key. Unchanged objects are skipped.
+ */
 async function mirror(days: number) {
   const sources = (process.env.BACKUP_MEDIA_BUCKETS ?? "").split(",").map((x) => x.trim()).filter(Boolean);
   if (!sources.length) { console.log("mirror: BACKUP_MEDIA_BUCKETS not set — skipped"); return; }
+  const src = process.env.BACKUP_MEDIA_R2_ACCESS_KEY_ID
+    ? new S3Client({ region: "auto", endpoint: `https://${need("BACKUP_R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`, credentials: { accessKeyId: need("BACKUP_MEDIA_R2_ACCESS_KEY_ID"), secretAccessKey: need("BACKUP_MEDIA_R2_SECRET_ACCESS_KEY") } })
+    : s3;
+  const listWith = async (client: S3Client, b: string, p: string) => {
+    const out: { key: string; size: number; at: Date; etag?: string }[] = [];
+    let token: string | undefined;
+    do {
+      const r = await client.send(new ListObjectsV2Command({ Bucket: b, Prefix: p, ContinuationToken: token }));
+      for (const o of r.Contents ?? []) out.push({ key: o.Key!, size: o.Size ?? 0, at: o.LastModified!, etag: o.ETag });
+      token = r.NextContinuationToken;
+    } while (token);
+    return out;
+  };
   const cutoff = Date.now() - days * 86400_000;
-  for (const src of sources) {
-    const dest = `media/${src}/`;
-    const [have, copies] = await Promise.all([list(src, ""), list(bucket, dest)]);
+  for (const b of sources) {
+    const dest = `media/${b}/`;
+    const [have, copies] = await Promise.all([listWith(src, b, ""), list(bucket, dest)]);
     const copied = new Map(copies.map((o) => [o.key.slice(dest.length), o]));
     let added = 0, removed = 0;
     for (const o of have) {
       const c = copied.get(o.key);
       if (c && c.size === o.size && c.etag === o.etag) continue;
-      await s3.send(new CopyObjectCommand({ Bucket: bucket, Key: dest + o.key, CopySource: `${src}/${encodeURIComponent(o.key).replace(/%2F/g, "/")}` }));
+      const got = await src.send(new GetObjectCommand({ Bucket: b, Key: o.key }));
+      const body = Buffer.from(await got.Body!.transformToByteArray());
+      await s3.send(new PutObjectCommand({ Bucket: bucket, Key: dest + o.key, Body: body, ContentType: got.ContentType }));
       added++;
     }
     const live = new Set(have.map((o) => o.key));
     for (const [k, c] of copied) if (!live.has(k) && c.at.getTime() < cutoff) { await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: dest + k })); removed++; }
-    console.log(`mirror ${src}: ${have.length} object(s), ${added} copied, ${removed} expired cop(ies) of deleted media removed`);
+    console.log(`mirror ${b}: ${have.length} object(s), ${added} copied, ${removed} expired cop(ies) of deleted media removed`);
   }
 }
 
+async function download(key: string, dir: string) {
+  const { writeFileSync } = await import("node:fs");
+  const got = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  const body = Buffer.from(await got.Body!.transformToByteArray());
+  const out = `${dir.replace(/\/$/, "")}/${basename(key)}`;
+  writeFileSync(out, body);
+  console.log(`downloaded ${key} → ${out} (${body.length} bytes)`);
+}
+
 const [cmd, ...args] = process.argv.slice(2);
-(cmd === "upload" ? upload(args) : cmd === "prune" ? prune(Number(args[0] ?? 35)) : cmd === "mirror" ? mirror(Number(args[0] ?? 35)) : list().then((l) => l.forEach((o) => console.log(o.at.toISOString(), o.size, o.key))))
+(cmd === "upload" ? upload(args) : cmd === "prune" ? prune(Number(args[0] ?? 35)) : cmd === "mirror" ? mirror(Number(args[0] ?? 35)) : cmd === "download" ? download(args[0], args[1] ?? "/tmp") : list().then((l) => l.forEach((o) => console.log(o.at.toISOString(), o.size, o.key))))
   .catch((e) => { console.error("offsite failed:", e.message); process.exitCode = 1; });

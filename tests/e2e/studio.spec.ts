@@ -70,6 +70,7 @@ test.describe("Integration Centre", () => {
     await expect(page.getByTestId("status-paystack")).toHaveText("Not configured");
     const card = page.locator("section#smtp");
     await card.getByRole("button", { name: "Configure" }).click();
+    await card.getByText("Use another email provider (advanced)").click();
     await card.locator('input[name="f:host"]').fill("127.0.0.1");
     await card.locator('input[name="f:username"]').fill("mailer");
     await card.locator('input[name="f:password"]').fill("Sup3r-Secret-Smtp-Pass");
@@ -84,11 +85,31 @@ test.describe("Integration Centre", () => {
     expect(stored[0].s).not.toContain("Sup3r-Secret-Smtp-Pass");
     await expect(page.getByTestId("status-smtp")).not.toHaveText("Connected");
     const smtp = page.locator("section#smtp");
-    if (!(await smtp.getByRole("button", { name: "Test connection" }).isVisible())) await smtp.getByRole("button", { name: "Configure" }).click();
+    if (!(await smtp.getByText("Use another email provider (advanced)").isVisible())) await smtp.getByRole("button", { name: "Configure" }).click();
+    await smtp.getByText("Use another email provider (advanced)").click();
     await smtp.getByRole("button", { name: "Test connection" }).click();
     await expect(page.getByText(/private or reserved address/)).toBeVisible();
     await page.reload();
     await expect(page.getByTestId("status-smtp")).toHaveText(/Connection failed|Disabled/);
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe("Gmail email setup", () => {
+  test("self-service Gmail form: links to Google, never asks for the Gmail password, explains a wrong code", async ({ page }) => {
+    const errors = watchErrors(page);
+    await login(page);
+    await page.goto("/admin/settings/integrations");
+    const card = page.locator("section#smtp");
+    if (!(await card.locator('input[name="appPassword"]').isVisible())) await card.getByRole("button", { name: "Configure" }).click();
+    await expect(card.getByRole("link", { name: /Google App Passwords/ })).toHaveAttribute("href", "https://myaccount.google.com/apppasswords");
+    await expect(card.locator('input[name="appPassword"]')).toHaveAttribute("type", "password");
+    await card.locator('input[name="email"]').fill("someone@gmail.com");
+    await card.locator('input[name="appPassword"]').fill("my-normal-password");
+    await card.getByRole("button", { name: /Connect Gmail|Update credentials/ }).click();
+    await expect(page.getByText(/16-letter code/)).toBeVisible();
+    const stored = await sql<{ s: string }>("select coalesce(secrets_encrypted,'') || settings::text as s from integration_configs where provider = 'smtp'");
+    expect(stored[0]?.s ?? "").not.toContain("my-normal-password");
     expect(errors).toEqual([]);
   });
 });

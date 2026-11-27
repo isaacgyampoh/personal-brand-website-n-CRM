@@ -31,6 +31,7 @@ export default async function LinksPage() {
           )}
           <h1 className="mt-6 font-display text-4xl">{s.brand.name}</h1>
           {(s.links.headline || s.brand.professionalTitle) && <p className="mt-2 text-sm text-[var(--muted-ink)]">{s.links.headline || s.brand.professionalTitle}</p>}
+          {s.brand.shortBio && <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-[var(--muted-ink)]">{s.brand.shortBio}</p>}
         </div>
         <ul className="mt-10 space-y-3">
           {next && (

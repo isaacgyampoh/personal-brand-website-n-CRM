@@ -8,6 +8,7 @@ import { PageTitle, Notice } from "@/components/dashboard/ui";
 import { IntegrationCard, type CardView } from "@/components/dashboard/integration-card";
 import { ReauthForm } from "@/components/dashboard/reauth-form";
 import { listGoogleCalendars } from "@/features/integrations/application/google";
+import { loadSettings } from "@/features/settings/application/settings";
 
 export const metadata = { title: "Integrations" };
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
 export default async function IntegrationsPage({ searchParams }: { searchParams: Promise<{ google?: string; reauth?: string }> }) {
   const user = await requireStaffPage("settings:manage", "/admin/settings/integrations");
   const sp = await searchParams;
-  const [views, recent, google] = await Promise.all([listIntegrationViews(), hasRecentAuth(), getIntegration("google")]);
+  const [views, recent, google, s] = await Promise.all([listIntegrationViews(), hasRecentAuth(), getIntegration("google"), loadSettings()]);
   const app = env().APP_URL;
   const calendars = google.all.refreshToken ? await listGoogleCalendars().catch(() => null) : null;
   const cards: CardView[] = views.map((v) => {
@@ -31,6 +32,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       secretHints: v.secretHints, lastSuccessAt: v.lastSuccessAt, lastFailureAt: v.lastFailureAt, lastError: v.lastError,
       googleConnected: d.provider === "google" ? Boolean(google.all.refreshToken) : undefined,
       calendars: d.provider === "google" ? calendars : undefined,
+      businessName: d.provider === "smtp" ? s.business.legalName || s.brand.name : undefined,
     };
   });
   const groups = [...new Set(INTEGRATIONS.map((d) => d.category))];

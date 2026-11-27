@@ -129,3 +129,56 @@ export async function googleCalendarsAction(): Promise<ActionResult<{ id: string
     return toActionError(e);
   }
 }
+
+/**
+ * Gmail quick setup: the owner enters only her Gmail address, an App Password and a
+ * sender name. Server settings are fixed (smtp.gmail.com:587 STARTTLS). The App Password is
+ * stored encrypted like every other secret; the normal Gmail password is never asked for.
+ * Email is switched on only if Google accepts the login.
+ */
+export async function connectGmailAction(_: unknown, fd: FormData): Promise<ActionResult> {
+  try {
+    const user = await guard();
+    await rateLimit(`gmail-connect:${user.id}`, 8, 600);
+    const input = z.object({
+      email: z.string().trim().toLowerCase().email("Enter your Gmail address"),
+      appPassword: z.string().transform((s) => s.replace(/\s+/g, "")),
+      fromName: z.string().trim().max(80).default(""),
+    }).parse({ email: fd.get("email"), appPassword: fd.get("appPassword") ?? "", fromName: fd.get("fromName") ?? "" });
+    const current = await getIntegration("smtp");
+    const keepPassword = !input.appPassword && current.values.username === input.email && Boolean(current.values.password);
+    if (!keepPassword && !/^[a-z]{16}$/i.test(input.appPassword)) {
+      throw new IntegrationError("The App Password is the 16-letter code Google shows when you create it (spaces don't matter). Your normal Gmail password won't work here.");
+    }
+    await saveIntegration("smtp", {
+      values: {
+        host: "smtp.gmail.com", port: "587", security: "starttls", username: input.email, fromEmail: input.email,
+        fromName: input.fromName, ...(keepPassword ? {} : { password: input.appPassword }),
+      },
+    }, user.id);
+    try {
+      await runConnectionTest("smtp", user.id);
+    } catch (e) {
+      const msg = (e as Error).message;
+      throw new IntegrationError(/535|5\.7\.8|not accepted|Username and Password/i.test(msg)
+        ? "Google didn't accept this App Password. Check the Gmail address, make sure 2-Step Verification is on, then create a new App Password and paste it here."
+        : `Google couldn't be reached: ${msg.replace(/^Connection failed:\s*/, "")}`);
+    }
+    await setIntegrationEnabled("smtp", true, user.id);
+    return { ok: true, message: `Gmail connected — emails will be sent from ${input.email}. Send yourself a test email to check.` };
+  } catch (e) {
+    return toActionError(e);
+  }
+}
+
+/** Stops sending email and removes the saved App Password (the address stays for easy reconnecting). */
+export async function disconnectEmailAction(_: unknown, __: FormData): Promise<ActionResult> {
+  try {
+    const user = await guard();
+    await setIntegrationEnabled("smtp", false, user.id);
+    await saveIntegration("smtp", { values: {}, clear: ["password"] }, user.id);
+    return { ok: true, message: "Email disconnected and the App Password removed. Automated emails stop until you connect again." };
+  } catch (e) {
+    return toActionError(e);
+  }
+}

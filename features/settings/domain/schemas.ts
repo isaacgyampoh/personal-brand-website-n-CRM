@@ -128,8 +128,8 @@ export const settingSchemas = {
     replyTo: z.union([z.literal(""), z.string().email()]).default(""),
     footerText: z.string().max(400).default(""),
     adminAlertEmail: z.union([z.literal(""), z.string().email()]).default(""),
-    /** Provider's daily sending allowance (Brevo free plan: 300). 0 = no limit. Never auto-upgrades anything. */
-    dailyLimit: z.coerce.number().int().min(0).max(1_000_000).default(300),
+    /** Automated emails allowed per rolling 24 hours (conservative for a personal Gmail account). 0 = no limit. */
+    dailyLimit: z.coerce.number().int().min(0).max(1_000_000).default(200),
   }),
   features: z.object({
     shop: z.boolean().default(true),

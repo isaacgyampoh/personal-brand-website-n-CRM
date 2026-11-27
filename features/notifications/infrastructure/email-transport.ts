@@ -96,6 +96,25 @@ function devFileTransport(): EmailTransport {
 }
 
 /** Active email transport: SMTP from the Integration Centre, or (outside production) a dev file sink. */
+const GMAIL_HOSTS = new Set(["smtp.gmail.com", "smtp.googlemail.com"]);
+
+/** True when email goes out through a personal Gmail account (not a business provider). */
+export async function usingPersonalGmail(): Promise<boolean> {
+  const cfg = await getIntegration("smtp");
+  if (!cfg.usable) return false;
+  return GMAIL_HOSTS.has(String(cfg.values.host ?? "").toLowerCase()) && /@(gmail|googlemail)\.com$/i.test(String(cfg.values.username ?? ""));
+}
+
+/**
+ * Classifies provider refusals so the queue can react sensibly instead of burning retries:
+ * "throttled" = sending limit / rate limit (try later), "auth" = credentials rejected (owner must reconnect).
+ */
+export function classifySmtpError(message: string): "throttled" | "auth" | "other" {
+  if (/5\.4\.5|4\.7\.0|4\.7\.28|quota|rate limit|too many|try again later|temporarily/i.test(message)) return "throttled";
+  if (/535|5\.7\.8|5\.7\.9|username and password not accepted|application-specific password|invalid login|authentication/i.test(message)) return "auth";
+  return "other";
+}
+
 export async function emailTransport(): Promise<EmailTransport> {
   const cfg = await getIntegration("smtp");
   if (cfg.usable) {

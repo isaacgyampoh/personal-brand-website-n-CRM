@@ -1,3 +1,4 @@
+import { UserError } from "@/lib/errors";
 /** Money helpers. All amounts are integer minor units (e.g. pesewas). */
 
 const MINOR_DIGITS: Record<string, number> = { GHS: 2, NGN: 2, USD: 2, ZAR: 2, KES: 2, EUR: 2, GBP: 2 };
@@ -25,9 +26,9 @@ export function formatMoney(minor: number, currency: string, locale = "en-GH"): 
 export function parseMajorToMinor(input: string | number, currency = "GHS"): number {
   const digits = minorDigits(currency);
   const cleaned = typeof input === "number" ? input.toString() : input.replace(/[,\s]/g, "");
-  if (!/^\d+(\.\d+)?$/.test(cleaned)) throw new Error("Invalid amount");
+  if (!/^\d+(\.\d+)?$/.test(cleaned)) throw new UserError("Enter the amount as a number, for example 1500 or 1500.50.");
   const [whole, frac = ""] = cleaned.split(".");
-  if (frac.length > digits) throw new Error(`At most ${digits} decimal places`);
+  if (frac.length > digits) throw new UserError(`Use at most ${digits} decimal places, for example 1500.50.`);
   return Number(whole) * 10 ** digits + Number(frac.padEnd(digits, "0") || "0");
 }
 

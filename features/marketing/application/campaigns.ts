@@ -4,6 +4,8 @@ import { db, tx } from "@/lib/database/pool";
 import { enqueue } from "@/lib/jobs/queue";
 import { audit } from "@/lib/audit";
 import { enqueueEmail } from "@/features/notifications/application/send";
+import { usingPersonalGmail } from "@/features/notifications/infrastructure/email-transport";
+import { UserError } from "@/lib/errors";
 
 /**
  * Consent-based email campaigns. Audiences only ever include confirmed
@@ -34,6 +36,9 @@ export async function audienceSize(a: Audience): Promise<number> {
 
 /** Freezes the recipient list and starts sending in batches. */
 export async function startCampaign(campaignId: string, actorId: string | null): Promise<number> {
+  if (await usingPersonalGmail()) {
+    throw new UserError("Newsletter campaigns can't be sent from a personal Gmail account — Google limits it and it risks your account being flagged. Booking, registration and payment emails still work. To send campaigns, connect a business email service in Settings → Integrations.");
+  }
   return tx(async (t) => {
     const c = await t.one<{ id: string; status: string; audience: unknown }>("select id, status, audience from campaigns where id = $1 for update", [campaignId]);
     if (!c || !["draft", "scheduled"].includes(c.status)) throw new Error("Campaign can't be sent in its current state.");

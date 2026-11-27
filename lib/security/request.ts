@@ -32,7 +32,7 @@ export function assertSameOrigin(request: Request): void {
 
 export function deviceFromUserAgent(ua: string | null): "mobile" | "tablet" | "desktop" | "bot" {
   if (!ua) return "desktop";
-  if (/bot|crawler|spider|crawling|preview|facebookexternalhit|linkedinbot|slurp/i.test(ua)) return "bot";
+  if (/bot|crawler|spider|crawling|preview|headless|lighthouse|playwright|puppeteer|facebookexternalhit|linkedinbot|slurp/i.test(ua)) return "bot";
   if (/ipad|tablet|(android(?!.*mobile))/i.test(ua)) return "tablet";
   if (/mobi|iphone|android/i.test(ua)) return "mobile";
   return "desktop";

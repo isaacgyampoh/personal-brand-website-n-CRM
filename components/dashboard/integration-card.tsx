@@ -5,7 +5,7 @@ import { ActionForm, Field, Select, Submit, ActionButton } from "@/components/da
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { STATUS_LABEL, storedKey, type FieldDef, type IntegrationDef, type IntegrationStatus } from "@/lib/integrations/definitions";
 import {
-  disconnectGoogleAction, saveIntegrationAction, sendTestEmailAction, testIntegrationAction, toggleIntegrationAction,
+  connectGmailAction, disconnectEmailAction, disconnectGoogleAction, saveIntegrationAction, sendTestEmailAction, testIntegrationAction, toggleIntegrationAction,
 } from "@/features/integrations/presentation/actions";
 
 /** Serialisable view passed from the server. Contains masked hints only — never secret values. */
@@ -17,7 +17,51 @@ export type CardView = {
   lastSuccessAt: string | null; lastFailureAt: string | null; lastError: string | null;
   googleConnected?: boolean;
   calendars?: { id: string; summary: string; primary: boolean }[] | null;
+  /** Business name, suggested as the email sender name. */
+  businessName?: string;
 };
+
+/** Self-service Gmail setup: address + App Password only. Server settings are filled in automatically. */
+function GmailSetup({ v }: { v: CardView }) {
+  const isGmail = v.settings.host === "smtp.gmail.com";
+  const saved = isGmail && Boolean(v.secretHints.password);
+  return (
+    <div className="space-y-4 rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+      <div>
+        <h3 className="text-sm font-semibold">{saved ? "Gmail" : "Connect Gmail (recommended)"}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {saved
+            ? <>Sending from <strong>{v.settings.username}</strong>{v.settings.fromName ? <> as &ldquo;{v.settings.fromName}&rdquo;</> : null}. Up to 200 automated emails per 24 hours — confirmations, receipts and reminders always go first. Newsletters are not sent from a personal Gmail account.</>
+            : "Booking confirmations, registrations, receipts, reminders and password resets are sent from your own Gmail address. It takes about two minutes."}
+        </p>
+      </div>
+      <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+        <li>Make sure <strong>2-Step Verification</strong> is on for your Google account (<a className="underline" href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noreferrer noopener">check here ↗</a>).</li>
+        <li>Open <a className="font-medium text-foreground underline" href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer noopener">Google App Passwords ↗</a>, type a name such as &ldquo;Website&rdquo; and press <strong>Create</strong>.</li>
+        <li>Copy the 16-letter code Google shows and paste it below. Never enter your normal Gmail password here.</li>
+      </ol>
+      <ActionForm action={connectGmailAction} success="Gmail connected" className="grid gap-3 sm:grid-cols-2">
+        <Field label="Your Gmail address" name="email" type="email" autoComplete="email" defaultValue={isGmail ? v.settings.username : ""} placeholder="you@gmail.com" required />
+        <Field label="Sender name shown to clients" name="fromName" defaultValue={v.settings.fromName || v.businessName || ""} placeholder="Your business name" />
+        <Field label="App Password (16 letters)" name="appPassword" type="password" autoComplete="new-password" className="sm:col-span-2"
+          placeholder={saved ? `Saved (${v.secretHints.password}) — leave blank to keep` : "xxxx xxxx xxxx xxxx"} hint="Stored encrypted. It is never shown again, only the last characters." />
+        <div className="flex flex-wrap gap-2 sm:col-span-2"><Submit>{saved ? "Update credentials" : "Connect Gmail"}</Submit></div>
+      </ActionForm>
+      {saved && (
+        <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+          <ActionButton action={testIntegrationAction} fields={{ provider: "smtp" }} label="Test connection" variant="default" success="Gmail accepted the login" />
+          <ActionButton action={disconnectEmailAction} fields={{}} label="Disconnect" variant="destructive" confirm="Disconnect Gmail? Automated emails stop until you connect again." success="Disconnected" />
+        </div>
+      )}
+      {saved && (
+        <ActionForm action={sendTestEmailAction} success="Test email sent" className="flex flex-wrap items-end gap-2">
+          <Field label="Send a test email to" name="to" type="email" className="min-w-60 flex-1" defaultValue={v.settings.username} />
+          <Submit variant="outline">Send test email</Submit>
+        </ActionForm>
+      )}
+    </div>
+  );
+}
 
 const TONE: Record<IntegrationStatus, string> = {
   connected: "bg-emerald-50 text-emerald-800 ring-emerald-200",
@@ -79,6 +123,17 @@ function FieldInput({ f, mode, v }: { f: FieldDef; mode: "test" | "live"; v: Car
   );
 }
 
+/** For email, the generic SMTP form is tucked away: Gmail quick setup covers the usual case. */
+function SmtpAdvanced({ smtp, children }: { smtp: boolean; children: React.ReactNode }) {
+  if (!smtp) return <>{children}</>;
+  return (
+    <details className="rounded-xl border p-4">
+      <summary className="cursor-pointer text-sm font-medium">Use another email provider (advanced)</summary>
+      <div className="mt-4 space-y-5">{children}</div>
+    </details>
+  );
+}
+
 export function IntegrationCard({ v, canGoLive }: { v: CardView; canGoLive: boolean }) {
   const [mode, setMode] = useState<"test" | "live">(v.mode);
   const [open, setOpen] = useState(v.status === "not_configured" ? false : v.status !== "connected");
@@ -103,6 +158,8 @@ export function IntegrationCard({ v, canGoLive }: { v: CardView; canGoLive: bool
 
       {open && (
         <div id={`body-${d.provider}`} className="space-y-5 border-t p-4 sm:p-5">
+          {d.provider === "smtp" && <GmailSetup v={v} />}
+          <SmtpAdvanced smtp={d.provider === "smtp"}>
           <details className="rounded-lg bg-muted/50 p-3 text-sm">
             <summary className="cursor-pointer font-medium">Setup instructions</summary>
             <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">{d.steps.map((s) => <li key={s}>{s}</li>)}</ol>
@@ -149,21 +206,22 @@ export function IntegrationCard({ v, canGoLive }: { v: CardView; canGoLive: bool
 
           <div className="flex flex-wrap items-center gap-2 border-t pt-4">
             <ActionButton action={testIntegrationAction} fields={{ provider: d.provider }} label="Test connection" variant="default" success="Connection verified" />
-            <ActionButton action={toggleIntegrationAction} fields={{ provider: d.provider, enabled: String(!v.enabled) }} label={v.enabled ? "Disable" : "Enable"}
+            <ActionButton action={toggleIntegrationAction} fields={{ provider: d.provider, enabled: String(!v.enabled) }} label={v.enabled ? "Disable" : "Enable"} success={v.enabled ? "Disabled" : "Enabled"}
               confirm={!v.enabled && v.mode === "live" ? `Enable ${d.name} in LIVE mode? Real money will be charged.` : undefined} />
             {d.provider === "google" && (v.googleConnected
-              ? <ActionButton action={disconnectGoogleAction} fields={{}} label="Disconnect Google" variant="destructive" confirm="Disconnect Google Calendar? Existing calendar entries stay, but new bookings won't sync." />
+              ? <ActionButton action={disconnectGoogleAction} fields={{}} label="Disconnect Google" variant="destructive" success="Google disconnected" confirm="Disconnect Google Calendar? Existing calendar entries stay, but new bookings won't sync." />
               // Full-page navigation is required: this route redirects to Google's OAuth consent screen.
               // eslint-disable-next-line @next/next/no-html-link-for-pages
               : <a href="/api/integrations/google/connect" className="inline-flex h-8 items-center rounded-lg border px-2.5 text-xs font-medium hover:bg-muted">Connect Google account</a>)}
           </div>
 
           {d.provider === "smtp" && (
-            <ActionForm action={sendTestEmailAction} success="Sent" className="flex flex-wrap items-end gap-2">
+            <ActionForm action={sendTestEmailAction} success="Test email sent" className="flex flex-wrap items-end gap-2">
               <Field label="Send a test email to" name="to" type="email" className="min-w-60 flex-1" />
               <Submit variant="outline">Send test email</Submit>
             </ActionForm>
           )}
+          </SmtpAdvanced>
         </div>
       )}
     </section>
