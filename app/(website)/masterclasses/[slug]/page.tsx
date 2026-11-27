@@ -163,6 +163,7 @@ export default async function EventPage({ params, searchParams }: Props) {
             ) : (
               <EventRegistration
                 eventSlug={e.slug}
+                timezone={e.timezone}
                 paymentsReady={canPay}
                 tickets={onSale.map((t) => ({ id: t.id, name: t.name, description: t.description, priceMinor: t.price_minor, currency: t.currency, remaining: t.remaining, maxPerOrder: t.max_per_order, salesEndAt: t.sales_end_at ? new Date(t.sales_end_at).toISOString() : null }))}
               />

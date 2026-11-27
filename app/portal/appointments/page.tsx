@@ -29,7 +29,7 @@ export default async function AppointmentsPage() {
                   {a.location_type === "online" && (a.meeting_url ? <a href={a.meeting_url} target="_blank" rel="noopener noreferrer" className="btn btn-accent">Join meeting</a> : <span className="text-sm text-[var(--muted-ink)]">Joining link will appear here before your session.</span>)}
                 </div>
                 {a.meeting_details && <p className="mt-4 whitespace-pre-wrap text-sm">{a.meeting_details}</p>}
-                <PortalAppointment id={a.id} serviceSlug={a.service_slug}
+                <PortalAppointment id={a.id} serviceSlug={a.service_slug} timezone={a.customer_timezone}
                   canCancel={withinCustomerCutoff(a.starts_at, a.cancel_cutoff_hours)}
                   canReschedule={withinCustomerCutoff(a.starts_at, a.reschedule_cutoff_hours) && a.reschedule_count < a.max_reschedules} />
               </li>

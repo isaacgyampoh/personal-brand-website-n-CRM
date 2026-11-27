@@ -70,6 +70,13 @@ test.describe("public website", () => {
     const report: Record<string, string[]> = {};
     for (const path of ["/", "/book/demo-brand-clarity-session", "/masterclasses/demo-linkedin-authority-masterclass", "/contact", "/login", "/insights/demo-article-1"]) {
       await page.goto(path);
+      await page.waitForLoadState("networkidle"); // dev server may reload once after compiling a route
+      // Below-the-fold sections fade in on scroll: scroll through so axe checks their final, visible state.
+      await page.evaluate(async () => {
+        for (let y = 0; y < document.body.scrollHeight; y += 400) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 60)); }
+        window.scrollTo(0, 0);
+      });
+      await page.waitForTimeout(1000);
       const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
       const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
       if (bad.length) report[path] = bad.map((v) => `${v.id} (${v.nodes.length})`);

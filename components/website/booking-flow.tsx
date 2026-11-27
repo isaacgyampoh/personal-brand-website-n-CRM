@@ -52,9 +52,9 @@ export function BookingFlow(props: { serviceSlug: string; serviceName: string; p
     return [...Array(offset).fill(null), ...Array.from({ length: count }, (_, i) => i + 1)] as (number | null)[];
   }, [month]);
 
-  const fmtTime = (iso: string) => new Intl.DateTimeFormat(undefined, { timeZone: tz, hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
-  const fmtFull = (iso: string) => new Intl.DateTimeFormat(undefined, { timeZone: tz, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZoneName: "short" }).format(new Date(iso));
-  const monthLabel = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(month.y, month.m - 1, 1)));
+  const fmtTime = (iso: string) => new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+  const fmtFull = (iso: string) => new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZoneName: "short" }).format(new Date(iso));
+  const monthLabel = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(month.y, month.m - 1, 1)));
   const canPrev = month.y > today.getFullYear() || month.m > today.getMonth() + 1;
 
   const submit = () => {
@@ -123,7 +123,7 @@ export function BookingFlow(props: { serviceSlug: string; serviceName: string; p
             {days?.size === 0 && <p className="mt-4 text-sm text-[var(--muted-ink)]">No times are available in the next six weeks. Please get in touch.</p>}
           </div>
           <div>
-            <p className="eyebrow mb-4">{day ? new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`)) : "Choose a date"}</p>
+            <p className="eyebrow mb-4">{day ? new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`)) : "Choose a date"}</p>
             {day && slots === null && <p className="text-sm text-[var(--muted-ink)]">Loading times…</p>}
             {slots?.length === 0 && <p className="text-sm text-[var(--muted-ink)]">No times left on this day.</p>}
             <div className="grid grid-cols-2 gap-2">

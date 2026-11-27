@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { cancelMyAppointmentAction, rescheduleMyAppointmentAction } from "@/features/portal/presentation/actions";
 import { bookingDaysAction, bookingSlotsAction } from "@/features/website/presentation/public-actions";
 
-export function PortalAppointment({ id, serviceSlug, canCancel, canReschedule }: { id: string; serviceSlug: string; canCancel: boolean; canReschedule: boolean }) {
+export function PortalAppointment({ id, serviceSlug, canCancel, canReschedule, timezone = "Africa/Accra" }: { id: string; serviceSlug: string; canCancel: boolean; canReschedule: boolean; timezone?: string }) {
   const router = useRouter();
   const [mode, setMode] = useState<"idle" | "cancel" | "reschedule">("idle");
   const [cancelState, cancelAction, cancelling] = useActionState(cancelMyAppointmentAction, null);
@@ -35,11 +35,11 @@ export function PortalAppointment({ id, serviceSlug, canCancel, canReschedule }:
       )}
       {mode === "reschedule" && (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">{days.slice(0, 21).map((d) => <button key={d} className="min-h-11 border border-[var(--line)] px-3 text-sm hover:border-[var(--ink)]" onClick={() => bookingSlotsAction(serviceSlug, d).then((r) => r.ok && setSlots(r.data ?? []))}>{new Date(`${d}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}</button>)}</div>
+          <div className="flex flex-wrap gap-2">{days.slice(0, 21).map((d) => <button key={d} className="min-h-11 border border-[var(--line)] px-3 text-sm hover:border-[var(--ink)]" onClick={() => bookingSlotsAction(serviceSlug, d).then((r) => r.ok && setSlots(r.data ?? []))}>{new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}</button>)}</div>
           <div className="flex flex-wrap gap-2">{slots.map((s) => <button key={s.start} disabled={pending} className="min-h-11 border border-[var(--line)] px-4 text-sm font-semibold hover:bg-[var(--ink)] hover:text-[var(--paper)]" onClick={() => start(async () => {
             const r = await rescheduleMyAppointmentAction(id, s.start);
             if (r.ok) { setMsg("Rescheduled — we've emailed your new time."); setMode("idle"); router.refresh(); } else setMsg(r.error);
-          })}>{new Date(s.start).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</button>)}</div>
+          })}>{new Date(s.start).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: timezone })}</button>)}</div>
           <button className="btn btn-outline" onClick={() => setMode("idle")}>Back</button>
         </div>
       )}

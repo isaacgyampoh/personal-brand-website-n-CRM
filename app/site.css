@@ -1,0 +1,18 @@
+/*
+ * Public website, sign-in and portal stylesheet. It only scans the sources
+ * those pages use, so visitors don't download Studio/editor CSS
+ * (keeps mobile LCP under budget). Studio uses app/globals.css.
+ */
+@import "tailwindcss" source(none);
+@source "../components/website";
+@source "../components/shared";
+@source "../components/auth";
+@source "../components/portal";
+@source "./(website)";
+@source "./(authentication)";
+@source "./portal";
+@source "./links";
+@source "../features/website-builder";
+@source "../features/content";
+@source "../lib";
+@import "./theme.css";

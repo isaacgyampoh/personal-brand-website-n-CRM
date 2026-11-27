@@ -1,7 +1,7 @@
 import { Cormorant_Garamond, Geist, Instrument_Serif, Inter, Manrope, Playfair_Display, Source_Sans_3 } from "next/font/google";
 
 // Editorial (default): Cormorant Garamond + Manrope
-export const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["400", "500"], style: ["normal", "italic"], variable: "--font-cormorant", display: "swap" });
+export const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-cormorant", display: "swap" });
 export const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
 // Classic: Playfair Display + Source Sans 3 (not preloaded unless selected)
 export const playfair = Playfair_Display({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-playfair", display: "swap", preload: false });

@@ -1,3 +1,4 @@
+import "../site.css";
 import type { Metadata } from "next";
 import { getPublicSettings } from "@/lib/cache";
 import { FONT_PAIRS } from "@/lib/fonts";

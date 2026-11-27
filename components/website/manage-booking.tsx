@@ -53,7 +53,7 @@ export function ManageBooking(props: { token: string; serviceSlug: string; canCa
             <div className="flex flex-wrap gap-2">
               {days.slice(0, 21).map((d) => (
                 <button key={d} className="min-h-11 border border-[var(--line)] px-3 text-sm hover:border-[var(--ink)]" onClick={() => bookingSlotsAction(props.serviceSlug, d).then((r) => r.ok && setSlots(r.data ?? []))}>
-                  {new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`))}
+                  {new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`))}
                 </button>
               ))}
             </div>
@@ -69,7 +69,7 @@ export function ManageBooking(props: { token: string; serviceSlug: string; canCa
                       setMsg(r.ok ? { ok: true, text: "Rescheduled. We've emailed your updated details." } : { ok: false, text: r.error });
                       if (r.ok) { setMode("idle"); router.refresh(); }
                     })}>
-                    {new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", timeZone: tz }).format(new Date(s.start))}
+                    {new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: tz }).format(new Date(s.start))}
                   </button>
                 ))}
               </div>

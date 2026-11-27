@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { registerEventAction } from "@/features/website/presentation/public-actions";
+import { formatMoney } from "@/lib/money";
 
 type Ticket = { id: string; name: string; description: string; priceMinor: number; currency: string; remaining: number | null; maxPerOrder: number; salesEndAt: string | null };
 
-const money = (minor: number, currency: string) =>
-  minor === 0 ? "Free" : new Intl.NumberFormat(undefined, { style: "currency", currency, minimumFractionDigits: minor % 100 ? 2 : 0 }).format(minor / 100);
+// Fixed locale + time zone: the server and the visitor's browser must render identical text (no hydration mismatch).
+const money = (minor: number, currency: string) => (minor === 0 ? "Free" : formatMoney(minor, currency));
 
-export function EventRegistration({ eventSlug, tickets, paymentsReady }: { eventSlug: string; tickets: Ticket[]; paymentsReady: boolean }) {
+export function EventRegistration({ eventSlug, tickets, paymentsReady, timezone = "Africa/Accra" }: { eventSlug: string; tickets: Ticket[]; paymentsReady: boolean; timezone?: string }) {
   const [ticketId, setTicketId] = useState(tickets.find((t) => t.remaining !== 0)?.id ?? tickets[0]?.id);
   const ticket = tickets.find((t) => t.id === ticketId)!;
   const max = Math.min(ticket.maxPerOrder, ticket.remaining ?? ticket.maxPerOrder);
@@ -50,7 +51,7 @@ export function EventRegistration({ eventSlug, tickets, paymentsReady }: { event
                   <span className="block font-semibold">{t.name}</span>
                   {t.description && <span className="block text-sm text-[var(--muted-ink)]">{t.description}</span>}
                   {t.remaining !== null && t.remaining <= 10 && <span className="mt-1 block text-xs font-semibold text-[var(--brand-accent)]">{t.remaining === 0 ? "Sold out" : `${t.remaining} left`}</span>}
-                  {t.salesEndAt && <span className="mt-1 block text-xs text-[var(--muted-ink)]">Until {new Date(t.salesEndAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</span>}
+                  {t.salesEndAt && <span className="mt-1 block text-xs text-[var(--muted-ink)]">Until {new Date(t.salesEndAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: timezone })}</span>}
                 </span>
               </span>
               <span className="font-semibold">{money(t.priceMinor, t.currency)}</span>
