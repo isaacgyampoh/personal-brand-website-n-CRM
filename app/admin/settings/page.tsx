@@ -2,12 +2,13 @@ import { requireStaffPage } from "@/lib/auth/session";
 import { loadSettings } from "@/features/settings/application/settings";
 import { PageTitle, Panel, LinkButton } from "@/components/dashboard/ui";
 import { SettingsForm } from "@/components/dashboard/settings-form";
+import { emailsSentToday } from "@/features/notifications/application/send";
 
 export const metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
   await requireStaffPage("settings:manage");
-  const s = await loadSettings();
+  const [s, sentToday] = await Promise.all([loadSettings(), emailsSentToday()]);
   return (
     <div className="max-w-4xl space-y-6">
       <PageTitle title="Settings" actions={<><LinkButton href="/admin/settings/users" variant="outline">Team & roles</LinkButton><LinkButton href="/admin/settings/emails" variant="outline">Email templates</LinkButton><LinkButton href="/admin/settings/integrations" variant="outline">Integrations</LinkButton><LinkButton href="/admin/website/design" variant="outline">Brand & design</LinkButton></>} />
@@ -33,6 +34,7 @@ export default async function SettingsPage() {
       <Panel title="Email sender"><SettingsForm settingKey="email" initial={s.email} fields={[
         { name: "fromName", label: "Sender name", type: "text" }, { name: "replyTo", label: "Reply-to address", type: "email" },
         { name: "adminAlertEmail", label: "Where to send business alerts", type: "email" }, { name: "footerText", label: "Email footer", type: "textarea" },
+        { name: "dailyLimit", label: "Daily sending limit (your email plan's allowance; 0 = none)", type: "text", hint: `Sent today: ${sentToday}. Brevo's free plan allows 300 a day — at the limit, emails wait until tomorrow and password resets and confirmations are kept ahead of newsletters.` },
       ]} /></Panel>
       <Panel title="Features"><SettingsForm settingKey="features" initial={s.features} fields={[
         { name: "shop", label: "Digital shop", type: "checkbox" }, { name: "academy", label: "Academy", type: "checkbox" }, { name: "assessment", label: "Brand assessment", type: "checkbox" },

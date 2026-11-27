@@ -82,8 +82,10 @@ export async function deliverEmail(payload: {
     return;
   }
 
-  await db.query("update notifications set status = 'sending' where id = $1", [n.id]);
   const settings = await loadSettings();
+  if (await deferredByDailyLimit(n.id, settings.email.dailyLimit, Boolean(payload.marketing), payload)) return;
+
+  await db.query("update notifications set status = 'sending' where id = $1", [n.id]);
   const def = await templateFor(n.template_key);
   const data = { ...payload.data, brandName: settings.brand.name };
 
@@ -138,6 +140,38 @@ export async function deliverEmail(payload: {
     ]);
     throw error; // let the queue retry with backoff
   }
+}
+
+/** Emails handed to the provider since 00:00 UTC (the provider's daily window). */
+export async function emailsSentToday(): Promise<number> {
+  const r = await db.one<{ n: number }>("select count(*)::int as n from notifications where channel = 'email' and sent_at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'");
+  return r?.n ?? 0;
+}
+
+/** Room kept for password resets, invitations and confirmations once marketing reaches its share. */
+const TRANSACTIONAL_RESERVE = 50;
+
+/**
+ * Respects the email provider's free daily allowance: at the limit the email waits
+ * for the next day (00:05 UTC) instead of failing; marketing stops earlier so
+ * transactional mail always has room. Warns the owner once a day at 80%.
+ */
+async function deferredByDailyLimit(id: string, limit: number, marketing: boolean, payload: Record<string, unknown>): Promise<boolean> {
+  if (!limit) return false;
+  const sent = await emailsSentToday();
+  const day = new Date().toISOString().slice(0, 10);
+  if (sent >= Math.floor(limit * 0.8)) {
+    await db.query(
+      `insert into tasks (title, notes, priority, dedupe_key) values ($1, $2, 'high', $3) on conflict (dedupe_key) do nothing`,
+      ["Email allowance nearly used", `${sent} of ${limit} emails sent today (provider's free daily limit). Further emails wait until tomorrow; nothing is upgraded automatically.`, `email-limit:${day}`],
+    );
+  }
+  const cap = marketing ? Math.max(0, limit - TRANSACTIONAL_RESERVE) : limit;
+  if (sent < cap) return false;
+  const next = new Date(`${day}T00:05:00Z`); next.setUTCDate(next.getUTCDate() + 1);
+  await db.query("update notifications set status = 'queued', error = $2 where id = $1", [id, `waiting: daily email limit (${limit}) reached — sends after ${next.toISOString()}`]);
+  await enqueue("notification.email", payload, { runAt: next, idempotencyKey: `notification:${id}:${day}`, maxAttempts: 6 });
+  return true;
 }
 
 export async function deliverSms(payload: { notificationId: string; message: string }): Promise<void> {
