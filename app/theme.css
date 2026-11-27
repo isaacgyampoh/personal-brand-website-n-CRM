@@ -152,6 +152,9 @@
   --display-scale: 1;
 }
 
+/* Design-system classes live in the components layer so Tailwind utilities (hidden, sm:…, spacing)
+   can override them, as intended. */
+@layer components {
 .site {
   background: var(--paper);
   color: var(--ink);
@@ -306,3 +309,4 @@
   overflow: hidden;
 }
 .group:nth-child(3n+2) .cover-type, .cover-alt { background-color: color-mix(in oklab, var(--ink) 92%, var(--brand-accent)); color: var(--paper); }
+}
