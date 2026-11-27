@@ -36,8 +36,10 @@ export default async function HomePage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Person",
-    name: s.brand.name,
+    name: s.profile.fullName || s.brand.name,
+    alternateName: s.profile.fullName && s.profile.fullName !== s.brand.name ? s.brand.name : undefined,
     jobTitle: s.brand.professionalTitle || undefined,
+    knowsAbout: s.profile.expertise ? s.profile.expertise.split("\n").map((x) => x.trim()).filter(Boolean) : undefined,
     description: s.brand.shortBio || s.brand.tagline || undefined,
     url: process.env.APP_URL,
     image: s.brand.portraitUrl || undefined,

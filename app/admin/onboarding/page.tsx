@@ -28,10 +28,12 @@ export default async function Onboarding() {
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-medium">{s.title}{s.optional && <span className="ml-2 text-xs font-normal text-muted-foreground">optional</span>}</span>
                   <span className="block text-xs text-muted-foreground">{s.why}</span>
+                  {!s.done && s.missing.length > 0 && <span className="mt-1 block text-xs text-amber-700">Missing: {s.missing.slice(0, 3).join(", ")}{s.missing.length > 3 ? "…" : ""}</span>}
                 </span>
                 <span className="text-xs text-muted-foreground">{s.done ? "Done" : "To do"}</span>
               </summary>
               <div className="border-t px-4 pb-4 pt-3 pl-14">
+                {s.missing.length > 0 && <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"><strong>Still needed:</strong> {s.missing.join(", ")}</p>}
                 <ol className="list-decimal space-y-1 pl-4 text-sm">{s.how.map((h) => <li key={h}>{h}</li>)}</ol>
                 <Link href={s.href} className="mt-3 inline-flex h-9 items-center rounded-lg bg-foreground px-3.5 text-sm font-medium text-background">{s.action}</Link>
               </div>

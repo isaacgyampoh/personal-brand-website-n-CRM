@@ -16,6 +16,18 @@ export const settingSchemas = {
     logoText: z.string().trim().max(40).default(""),
     portraitUrl: url.default(""),
     portraitAlt: z.string().trim().max(200).default(""),
+    altLogoUrl: url.default(""),
+    faviconUrl: url.default(""),
+  }),
+  /** Personal & professional profile (Studio → Business profile). Lists are one item per line. */
+  profile: z.object({
+    fullName: z.string().trim().max(120).default(""),
+    longBio: z.string().trim().max(6000).default(""),
+    qualifications: z.string().trim().max(3000).default(""),
+    expertise: z.string().trim().max(2000).default(""),
+    mission: z.string().trim().max(600).default(""),
+    vision: z.string().trim().max(600).default(""),
+    achievements: z.string().trim().max(4000).default(""),
   }),
   theme: z.object({
     ink: hex.default("#1b1916"),
@@ -34,6 +46,7 @@ export const settingSchemas = {
     city: z.string().trim().max(80).default(""),
     country: z.string().trim().max(80).default("Ghana"),
     bookingNote: z.string().trim().max(300).default(""),
+    businessHours: z.string().trim().max(300).default(""),
   }),
   social: z.object({
     linkedin: url.default(""),
@@ -43,6 +56,7 @@ export const settingSchemas = {
     tiktok: url.default(""),
     facebook: url.default(""),
     podcast: url.default(""),
+    other: url.default(""),
   }),
   business: z.object({
     timezone: z.string().default("Africa/Accra"),
@@ -50,6 +64,9 @@ export const settingSchemas = {
     locale: z.string().default("en-GH"),
     legalName: z.string().trim().max(150).default(""),
     receiptFooter: z.string().trim().max(500).default(""),
+    registrationNumber: z.string().trim().max(80).default(""),
+    taxNumber: z.string().trim().max(80).default(""),
+    bookingPolicy: z.string().trim().max(2000).default(""),
   }),
   commerce: z.object({
     holdMinutes: z.number().int().min(5).max(120).default(20),

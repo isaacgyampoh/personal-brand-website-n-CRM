@@ -38,6 +38,7 @@ export const ADMIN_NAV: NavGroup[] = [
   ] },
   { label: "System", items: [
     { href: "/admin/onboarding", label: "Get started", icon: "CheckSquare", permission: "settings:manage" },
+    { href: "/admin/settings/profile", label: "Business profile", icon: "Users", permission: "settings:manage" },
     { href: "/admin/settings", label: "Business settings", icon: "Settings", permission: "settings:manage" },
     { href: "/admin/settings/integrations", label: "Integrations", icon: "Plug", permission: "settings:manage" },
     { href: "/admin/security", label: "Security", icon: "ShieldCheck", permission: "dashboard:view" },

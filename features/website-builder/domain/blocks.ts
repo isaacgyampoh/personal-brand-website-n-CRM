@@ -115,6 +115,12 @@ export const blockSchemas = {
   CallToAction: z.object({ id, eyebrow: text(80), heading: text(200), body: text(600), primaryCta: cta, secondaryCta: cta, tone }),
   BookingCard: z.object({ id, heading: text(160), body: text(500), serviceSlug: z.string().max(100).default(""), tone }),
   Assessment: z.object({ id, eyebrow: text(80), heading: text(160), body: text(500), assessmentSlug: z.string().max(100).default(""), cta, tone }),
+  /** Live biography from Studio → Business profile (edit the profile, not the page). */
+  Profile: z.object({
+    id, eyebrow: text(80), heading: text(160), imageUrl: safeImage, imageAlt: text(200),
+    showExpertise: z.boolean().default(true), showQualifications: z.boolean().default(true),
+    showAchievements: z.boolean().default(true), showMission: z.boolean().default(true), tone,
+  }),
   Spacer: z.object({ id, size: z.enum(["sm", "md", "lg"]).default("md"), divider: z.boolean().default(false) }),
 } as const;
 
@@ -124,7 +130,8 @@ export type BlockProps<T extends BlockType> = z.infer<(typeof blockSchemas)[T]>;
 
 const blockSchema = z.discriminatedUnion(
   "type",
-  BLOCK_TYPES.map((type) => z.object({ type: z.literal(type), props: blockSchemas[type] })) as unknown as [
+  // Every section can be hidden without deleting it (Studio → Website → "Hide this section").
+  BLOCK_TYPES.map((type) => z.object({ type: z.literal(type), props: (blockSchemas[type] as z.ZodObject<z.ZodRawShape>).extend({ hidden: z.boolean().default(false) }) })) as unknown as [
     z.ZodObject<{ type: z.ZodLiteral<BlockType>; props: z.ZodTypeAny }>,
     ...z.ZodObject<{ type: z.ZodLiteral<BlockType>; props: z.ZodTypeAny }>[],
   ],

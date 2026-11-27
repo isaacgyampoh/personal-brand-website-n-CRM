@@ -4,8 +4,9 @@ import {
   getPublicArticles, getPublicCourses, getPublicEvents, getPublicServices, getPublicTestimonials,
 } from "@/features/website/application/public-queries";
 import { ArticleCard, CourseCard, EventCard, ServiceCard, priceLabel } from "./cards";
-import { Emphasis } from "./emphasis";
-import { Img, SectionHead, toneClass, Hero, Introduction, Statement, EditorialText, ImageText, Stats, Logos, Timeline, Speaking, Gallery, Video, Faq, Pricing, Newsletter, CallToAction, Assessment, Spacer } from "./blocks-static";
+import { Emphasis, Paragraphs } from "./emphasis";
+import { getPublicSettings } from "@/lib/cache";
+import { Eyebrow, Img, SectionHead, toneClass, Hero, Introduction, Statement, EditorialText, ImageText, Stats, Logos, Timeline, Speaking, Gallery, Video, Faq, Pricing, Newsletter, CallToAction, Assessment, Spacer } from "./blocks-static";
 
 /* Data-backed blocks (server only) ---------------------------------------- */
 
@@ -132,17 +133,61 @@ async function BookingCard(p: BlockProps<"BookingCard">) {
   );
 }
 
+const lines = (t: string) => t.split("\n").map((l) => l.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
+
+/** Biography rendered live from Studio → Business profile. Empty parts are not shown. */
+async function Profile(p: BlockProps<"Profile">) {
+  const s = await getPublicSettings();
+  const bio = s.profile.longBio || s.brand.shortBio;
+  if (!bio) return null;
+  const lists = [
+    p.showExpertise && { title: "Areas of expertise", items: lines(s.profile.expertise) },
+    p.showAchievements && { title: "Recognition", items: lines(s.profile.achievements) },
+    p.showQualifications && { title: "Qualifications", items: lines(s.profile.qualifications) },
+  ].filter((x): x is { title: string; items: string[] } => Boolean(x && x.items.length));
+  const image = p.imageUrl || s.brand.portraitUrl;
+  return (
+    <section className={`${toneClass(p.tone)} section-y`}>
+      <div className="site-container grid gap-12 lg:grid-cols-12 lg:gap-16">
+        {image && (
+          <div className="reveal lg:col-span-5">
+            <div className="img-frame aspect-[4/5] lg:sticky lg:top-28"><Img src={image} alt={p.imageAlt || s.brand.portraitAlt || s.profile.fullName || s.brand.name} className="absolute inset-0 size-full object-cover" /></div>
+          </div>
+        )}
+        <div className={`reveal ${image ? "lg:col-span-6 lg:col-start-7" : "lg:col-span-8"}`}>
+          <Eyebrow text={p.eyebrow} />
+          {p.heading && <h2 className="display-lg mt-5"><Emphasis text={p.heading} /></h2>}
+          <Paragraphs text={bio} className="prose-site mt-8" />
+          {p.showMission && (s.profile.mission || s.profile.vision) && (
+            <dl className="mt-12 grid gap-8 border-t border-[var(--line)] pt-10 sm:grid-cols-2">
+              {s.profile.mission && <div><dt className="eyebrow">Mission</dt><dd className="mt-3 leading-relaxed">{s.profile.mission}</dd></div>}
+              {s.profile.vision && <div><dt className="eyebrow">Vision</dt><dd className="mt-3 leading-relaxed">{s.profile.vision}</dd></div>}
+            </dl>
+          )}
+          {lists.map((l) => (
+            <div key={l.title} className="mt-12 border-t border-[var(--line)] pt-10">
+              <p className="eyebrow">{l.title}</p>
+              <ul className="mt-5 space-y-3">{l.items.map((i) => <li key={i} className="flex gap-3 leading-relaxed"><span aria-hidden className="mt-[0.7em] h-px w-5 shrink-0 bg-[var(--brand-accent)]" />{i}</li>)}</ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* Registry --------------------------------------------------------------- */
 
 const RENDERERS: { [K in Block["type"]]: (p: BlockProps<K>) => React.ReactNode | Promise<React.ReactNode> } = {
   Hero, Introduction, Statement, EditorialText, ImageText, Services, Events, Courses, Articles, Testimonials, Stats, Logos,
-  Timeline, Speaking, Gallery, Video, Faq, Pricing, Newsletter, CallToAction, BookingCard, Assessment, Spacer,
+  Timeline, Speaking, Gallery, Video, Faq, Pricing, Newsletter, CallToAction, BookingCard, Assessment, Spacer, Profile,
 };
 
 export function RenderBlocks({ blocks }: { blocks: Block[] }) {
   return (
     <>
       {blocks.map((b, i) => {
+        if ((b.props as { hidden?: boolean }).hidden) return null;
         const Component = RENDERERS[b.type] as (p: unknown) => React.ReactNode;
         return Component ? <Component key={(b.props as { id?: string }).id ?? i} {...b.props} /> : null;
       })}

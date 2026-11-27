@@ -37,6 +37,7 @@ describe("global search & activity", () => {
     const owner = await db.one<{ id: string }>("insert into users (email, role) values ('onb@example.com','owner') on conflict (email) do update set role='owner' returning id");
     const steps = await onboardingSteps(owner!.id);
     expect(steps.find((s) => s.key === "security")!.done).toBe(false);
+    expect(steps.find((s) => s.key === "profile")!.missing).toContain("business email");
     expect(steps.find((s) => s.key === "paystack")!.done).toBe(false);
     await db.query("update users set mfa_enabled_at = now() where role <> 'customer'");
     expect((await onboardingSteps(owner!.id)).find((s) => s.key === "security")!.done).toBe(true);

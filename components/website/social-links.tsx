@@ -1,7 +1,7 @@
 import type { Settings } from "@/features/settings/domain/schemas";
 
 const LABELS: Record<keyof Settings["social"], string> = {
-  linkedin: "LinkedIn", instagram: "Instagram", x: "X", youtube: "YouTube", tiktok: "TikTok", facebook: "Facebook", podcast: "Podcast",
+  linkedin: "LinkedIn", instagram: "Instagram", x: "X", youtube: "YouTube", tiktok: "TikTok", facebook: "Facebook", podcast: "Podcast", other: "Website",
 };
 
 export function SocialLinks({ social, className = "" }: { social: Settings["social"]; className?: string }) {

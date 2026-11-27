@@ -7,7 +7,7 @@ import { saveSettingsAction } from "@/features/website/presentation/admin-action
 
 type LinkItem = { label: string; href: string; highlight?: boolean };
 export type FieldSpec =
-  | { name: string; label: string; type: "text" | "textarea" | "color" | "email" | "datetime-local"; hint?: string }
+  | { name: string; label: string; type: "text" | "textarea" | "color" | "email" | "datetime-local"; hint?: string; rows?: number }
   | { name: string; label: string; type: "select"; options: [string, string][]; hint?: string }
   | { name: string; label: string; type: "checkbox"; hint?: string }
   | { name: string; label: string; type: "image"; hint?: string }
@@ -52,7 +52,7 @@ export function SettingsForm({ settingKey, initial, fields, submitLabel = "Save"
               ) : (
                 <label className="block">
                   <span className="mb-1 block text-xs font-medium text-foreground/80">{f.label}</span>
-                  {f.type === "textarea" ? <textarea className={cls} rows={3} value={String(value[f.name] ?? "")} onChange={(e) => set(f.name, e.target.value)} />
+                  {f.type === "textarea" ? <textarea className={cls} rows={"rows" in f && f.rows ? f.rows : 3} value={String(value[f.name] ?? "")} onChange={(e) => set(f.name, e.target.value)} />
                     : f.type === "select" ? <select className={`${cls} h-9`} value={String(value[f.name] ?? "")} onChange={(e) => set(f.name, e.target.value)}>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
                     : f.type === "color" ? <span className="flex items-center gap-2"><input type="color" value={String(value[f.name] ?? "#000000")} onChange={(e) => set(f.name, e.target.value)} className="h-9 w-14 rounded border" /><input className={`${cls} h-9 font-mono`} value={String(value[f.name] ?? "")} onChange={(e) => set(f.name, e.target.value)} /></span>
                     : f.type === "links" ? <Links value={(value[f.name] as LinkItem[]) ?? []} onChange={(v) => set(f.name, v)} highlight={f.highlight} />

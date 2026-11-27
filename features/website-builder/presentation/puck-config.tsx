@@ -50,7 +50,12 @@ function LivePlaceholder({ title, note }: { title: string; note: string }) {
 /* ----- config ----- */
 export function buildPuckConfig(rootClassName: string, themeCss: string): Config {
   const C = (type: BlockType, label: string, fields: Record<string, Field>, render: (p: never) => React.ReactNode) => ({
-    label, fields, defaultProps: defaults(type), render: render as never,
+    label,
+    fields: { ...fields, hidden: toggle("Hide this section on the website") },
+    defaultProps: { ...defaults(type), hidden: false },
+    render: ((p: { hidden?: boolean }) => (p.hidden
+      ? <div style={{ opacity: 0.35 }} title="Hidden on the website">{(render as (q: unknown) => React.ReactNode)(p)}</div>
+      : (render as (q: unknown) => React.ReactNode)(p))) as never,
   });
   return {
     root: {
@@ -64,7 +69,7 @@ export function buildPuckConfig(rootClassName: string, themeCss: string): Config
     },
     categories: {
       headers: { title: "Openers", components: ["Hero", "Statement"] },
-      story: { title: "Story & text", components: ["Introduction", "EditorialText", "ImageText", "Timeline"] },
+      story: { title: "Story & text", components: ["Profile", "Introduction", "EditorialText", "ImageText", "Timeline"] },
       offers: { title: "Offers (live data)", components: ["Services", "Events", "Courses", "BookingCard", "Pricing"] },
       proof: { title: "Proof", components: ["Testimonials", "Stats", "Logos", "Speaking"] },
       media: { title: "Media", components: ["Gallery", "Video"] },
@@ -139,6 +144,11 @@ export function buildPuckConfig(rootClassName: string, themeCss: string): Config
       BookingCard: C("BookingCard", "Book a service (live)", { heading: text("Heading (optional)"), body: area("Text (optional)"), serviceSlug: text("Service slug (from Admin → Services)"), tone },
         () => <LivePlaceholder title="Booking card" note="Shows the chosen service with a 'Choose a time' button." />),
       Assessment: C("Assessment", "Brand assessment invite", { eyebrow: text("Eyebrow"), heading: area("Heading"), body: area("Text"), assessmentSlug: text("Assessment slug"), cta: cta("Button"), tone }, (p) => <S.Assessment {...(p as object as Parameters<typeof S.Assessment>[0])} />),
+      Profile: C("Profile", "Biography (from Business profile)", {
+        eyebrow: text("Eyebrow"), heading: area("Heading"), imageUrl: image("Photo"), imageAlt: text("Photo description"),
+        showExpertise: toggle("Show areas of expertise"), showQualifications: toggle("Show qualifications"),
+        showAchievements: toggle("Show recognition"), showMission: toggle("Show mission & vision"), tone,
+      }, () => <LivePlaceholder title="Biography" note="Shows the biography, expertise, qualifications and recognition from Studio → Business profile." />),
       Spacer: C("Spacer", "Spacer / divider", { size: select("Size", [["sm", "Small"], ["md", "Medium"], ["lg", "Large"]]), divider: toggle("Show line") }, (p) => <S.Spacer {...(p as object as Parameters<typeof S.Spacer>[0])} />),
     },
   } as unknown as Config;

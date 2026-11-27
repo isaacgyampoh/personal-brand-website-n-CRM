@@ -43,6 +43,10 @@ async function demoPdf(title: string): Promise<Buffer> {
 }
 
 async function main() {
+  // Never in production: demonstration content must not reach a real client's site.
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_DEMO_CONTENT !== "yes") {
+    throw new Error("Refusing to load demonstration content in production.");
+  }
   const owner = await db.one<{ id: string }>("select id from users where role in ('owner','admin') order by created_at limit 1");
   if (!owner) throw new Error("Create an owner first: pnpm create-owner --email you@example.com --name \"Your Name\"");
 

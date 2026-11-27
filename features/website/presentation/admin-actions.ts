@@ -66,8 +66,8 @@ export async function pageLifecycleAction(_: unknown, fd: FormData): Promise<Act
 /** Saves a settings section from a form. Nested fields use JSON in a hidden `json` input. */
 export async function saveSettingsAction(_: unknown, fd: FormData): Promise<ActionResult> {
   return runAction(async () => {
-    const key = z.enum(["brand", "theme", "contact", "social", "business", "commerce", "seo", "navigation", "announcement", "links", "email", "features", "onboarding"]).parse(fd.get("key")) as SettingKey;
-    const permission = ["navigation", "announcement", "links", "theme", "brand", "seo"].includes(key) ? "website:edit" : "settings:manage";
+    const key = z.enum(["brand", "theme", "contact", "social", "business", "commerce", "seo", "navigation", "announcement", "links", "email", "features", "onboarding", "documents", "profile"]).parse(fd.get("key")) as SettingKey;
+    const permission = ["navigation", "announcement", "links", "theme", "brand", "seo", "profile"].includes(key) ? "website:edit" : "settings:manage";
     const u = await assertPermission(permission);
     const raw = fd.get("json")
       ? JSON.parse(String(fd.get("json")))

@@ -16,6 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: { siteName: s.brand.name, type: "website", images: s.seo.ogImageUrl ? [s.seo.ogImageUrl] : undefined },
     twitter: { card: "summary_large_image", site: s.seo.xHandle || undefined },
     robots: index ? { index: true, follow: true } : { index: false, follow: false },
+    ...(s.brand.faviconUrl ? { icons: { icon: s.brand.faviconUrl, apple: s.brand.faviconUrl } } : {}),
   };
 }
 

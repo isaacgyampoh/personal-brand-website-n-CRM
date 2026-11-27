@@ -10,6 +10,12 @@ import { publishedArticles, publishedArticle, relatedArticles, type ArticleRow }
 /** Public DTOs use ISO strings: cached results are JSON-serialised. */
 const url = (key: string | null | undefined) => (key ? publicMediaUrl(key) : null);
 const iso = (d: Date | string | null | undefined) => (d ? new Date(d).toISOString() : null);
+/** PostgreSQL `date` → YYYY-MM-DD (pg returns local-midnight Date objects; never use String(date)). */
+const dateOnly = (d: unknown): string | null => {
+  if (!d) return null;
+  if (d instanceof Date) return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return String(d).slice(0, 10);
+};
 
 export type PublicService = {
   id: string; slug: string; name: string; category: string; summary: string; description: unknown; imageUrl: string | null;
@@ -225,7 +231,7 @@ export const getPublicAppearances = unstable_cache(
     );
     return rows.map((a) => ({
       id: a.id as string, kind: a.kind as string, title: a.title as string, outlet: a.outlet as string, url: a.url as string | null,
-      appearedOn: a.appeared_on ? String(a.appeared_on).slice(0, 10) : null, description: a.description as string,
+      appearedOn: dateOnly(a.appeared_on), description: a.description as string,
       imageUrl: url(a.storage_key as string | null), featured: a.featured as boolean,
     }));
   }),
