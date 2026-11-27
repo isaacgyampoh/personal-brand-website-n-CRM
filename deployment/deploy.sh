@@ -31,11 +31,15 @@ echo "== database"
 docker compose up -d postgres
 for i in $(seq 1 30); do docker compose exec -T postgres sh -c 'pg_isready -q -U "$POSTGRES_USER" -d "$POSTGRES_DB"' && break; sleep 2; done
 
-if docker compose --profile tools run --rm -T tools sh -c 'psql "$DATABASE_URL" -Atc "select to_regclass($$public.users$$) is not null" | grep -q t'; then
+# NB: no $$-quoting inside sh -c (the shell would expand $$ to its PID and the check would silently fail).
+HAS_DATA="$(docker compose --profile tools run --rm -T tools sh -c 'psql "$DATABASE_URL" -At -c "\dt public.users"' 2>/dev/null | grep -c users || true)"
+if [ "${HAS_DATA:-0}" -gt 0 ]; then
   echo "== pre-deploy backup"
   docker compose --profile tools run --rm -T tools scripts/backup.sh /backups
 else
   echo "== first deploy: empty database, no backup needed"
+  # Refuse to continue silently if the check itself could not run against an existing volume.
+  docker volume inspect "${STACK_NAME:-brand-platform}_pgdata" >/dev/null 2>&1 && [ "${FIRST_DEPLOY:-}" != "yes" ] && { echo "Database volume exists but no data was detected — run with FIRST_DEPLOY=yes only if this is truly a new install"; exit 1; }
 fi
 
 echo "== worker (applies pending migrations first)"
