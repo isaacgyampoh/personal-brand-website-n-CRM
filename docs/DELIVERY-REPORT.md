@@ -1,105 +1,99 @@
-# Delivery report
+# Delivery report — Final Delivery Directive
 
-Date: 2026-11-26 · Repository: this repo, branch `main` · Environment used: macOS, Node 24, PostgreSQL 18 (local), no Docker, no external credentials.
+Date: 27 November 2026 · Branch `main` · All work committed (no remote push: no GitHub access was provided).
 
-## 1. Features completed (built and exercised by automated tests)
+## Recommendation
 
-**Public website** — home and CMS pages rendered from a validated 23-block library; services and service detail; booking (date → time in the visitor's time zone → details → review → confirm/pay); token-based "manage booking" (cancel/reschedule within policy); masterclass listing and landing pages (tickets, early bird windows, group places, waitlist, agenda, speakers, FAQs, Event structured data, generated social-preview image); academy and course pages; shop and product pages; insights with search, categories, tags, related articles; speaking (topics, engagements, enquiry); case studies (consent-gated); press/media with media-kit request; testimonials (approved + consent only) and submission form; contact with enquiry types; link-in-bio; brand assessment with deterministic scoring and consent-gated lead capture; certificate verification; newsletter double opt-in and one-click unsubscribe; legal pages flagged "requires legal review"; sitemap, robots, canonical URLs, noindex for private areas.
+| | Decision | Why |
+|---|---|---|
+| **Staging** | **GO** once project-specific server access is provided | Code, tests, build, containers and runbooks are ready. Staging is **not deployed**. |
+| **Production / live payments** | **NO-GO** | Not deployed; no provider credentials verified (Paystack, SMTP, R2…); client content not supplied; no external penetration test. |
 
-**Studio (admin)** — live-data dashboard with date filters and growth; contacts (filters, segments, lead score, timeline, notes, tags, tasks, consent, merge duplicates, anonymising delete), pipeline Kanban, CSV/XLSX import, CSV export; bookings week view, appointment detail (meeting link, notes, complete/no-show, reschedule, cancel with automatic refund), manual appointments, working hours, blocked dates/holidays/extra hours; services; masterclasses (create, publish, tickets, private joining info, multi-session/recurring, resources, attendees, manual/complimentary registration, check-in, export, certificates, duplicate, reschedule with notifications, cancel with automatic refunds); payments (orders, verify-now, manual payment with audit, refunds, receipts PDF, reconciliation report, ledger/orders exports); Website Studio (Puck visual editor, desktop/tablet/mobile preview, autosave drafts, publish, scheduled publish, revisions/restore, SEO & social settings, new landing pages); brand & design (colours, typography pairs, logo, SEO defaults), navigation/footer/announcement/link-in-bio editors; content studio (Tiptap, autosave, revisions, scheduling, SEO) and content calendar with reminders and copy-ready text; media library (drag-and-drop multi-upload, WebP conversion, metadata stripping, dedupe, public/private, reference-safe delete); academy (modules, lessons of 6 kinds, drip, previews, quiz builder, resources, students, manual enrolment, assignment review); shop (private files, download limits, lead magnets); marketing (campaigns to confirmed subscribers, tracked `/go/` links with clicks/leads/bookings/registrations/revenue attribution, UTM revenue, discount codes); assessments; partnerships pipeline and enquiries inbox; testimonials/case studies/press/speaking topics; analytics; settings (business, contact, social, checkout, email sender, features), email templates, team & role permissions, integrations status, jobs/notifications/audit log with retry/cancel; AI drafting assistant (off by default).
+## URLs
 
-**Portal** — overview; appointments with self-service cancel/reschedule; masterclasses and protected class page (countdown, access window, materials, feedback, certificate); courses with progress, resume, quizzes, assignments; library downloads (signed, limited); receipts; certificates (PDF); profile, notification preferences, password reset, deletion request.
-
-**Platform** — durable PostgreSQL job queue (SKIP LOCKED, backoff, dead-letter, idempotency keys, stale-lock recovery) and worker with 9 scheduled tasks; notifications log (accepted ≠ delivered); payment state machine; receipts; reconciliation; backups.
-
-## 2. Partially completed
-
-- **Supabase Auth adapter** — written against current `@supabase/ssr` APIs; not run against a real project.
-- **Paystack** — adapter unit-tested (signatures, parsing, modes); full order/verify/webhook/refund flows tested with a test double; **no call to the real Paystack API has been made**.
-- **R2 storage, SMTP, mNotify, Google Calendar, AI assistant** — implemented behind interfaces; unverified without credentials. Development uses local storage and file-based mail (clearly flagged, refused in production).
-- **Zoom/Google Meet** — manual meeting links per event/service; no automatic meeting creation.
-- **MFA** — not implemented for built-in auth (available via Supabase Auth).
-- **Media** — no in-browser image cropping; responsive WebP variants are generated but pages currently serve the single optimised image.
-- **Exports** — CSV (opens in Excel); no native XLSX export. Receipts are PDFs; separate pre-payment invoices are not generated.
-- **Installments** — not implemented (discount codes and free/manual payments are).
-- **Campaign scheduling** works; open-tracking is deliberately not implemented (privacy); click attribution uses tracked links.
-
-## 3. Blocked by external dependencies
-
-Supabase project credentials · Paystack test (later live) keys · SMTP account · Cloudflare R2 buckets/token · Contabo SSH access and the shared proxy network name · domain/Cloudflare access · optional Google OAuth client, mNotify key/sender ID, Anthropic API key · client brand content and lawyer-reviewed legal text.
-
-## 4. Automated test results (actual, 2026-11-26)
-
-`pnpm test` — **65/65 passed** (5 files): 27 unit (money, time zones incl. DST, availability engine, discounts, CSV injection, email escaping, Paystack signatures, builder validation, event rules, file sniffing, assessment scoring) + 38 integration against real PostgreSQL, including: 20 parallel bookings → exactly 1 succeeds; DB exclusion constraint rejects a raw overlapping insert; group capacity 3 of 6; 30 buyers for 5 seats → exactly 5; all-or-nothing group registration; expired holds don't count; event cancellation notifies; payment confirmed only after verification; tampered amount/currency rejected with no access granted; failed payment; invalid webhook rejected; duplicate/concurrent webhooks fulfil once (1 ledger row, 1 receipt, 1 email); webhook before settlement retried; late payment re-confirms or is flagged when sold out; idempotent refunds and access revocation; ledger/audit/receipt immutability; order transition enforcement; manual payment audit; entitlement isolation (unverified email gets nothing); draft vs published separation; unsafe block content rejected; scheduled page/article publishing; course progress → quiz graded server-side (answers never sent) → drip → certificate issued once and verifiable; job queue retries/dead-letter/restart recovery; idempotent email; unsubscribe suppression; CRM create/stage/merge/filter; CSV import dedupe with no assumed consent; rate limiting; password hashing; encryption; signed links.
-
-## 5. Browser test results (actual)
-
-`pnpm test:e2e` — **41/41 passed** (Chromium desktop 1440px + Pixel 7 mobile): 19 public pages render with no console errors and no horizontal overflow; no overflow at 320/375/768 px; mobile menu (open, Escape, navigate); sitemap/robots/structured data/OG image/noindex; CSP and security headers; axe WCAG 2.2 AA — zero serious/critical violations on 6 key pages; contact enquiry → contact + submission + task; newsletter pending until confirmed; free masterclass registration end to end; free booking on a phone end to end; paid checkout honestly disabled without Paystack; anonymous redirects; wrong password; protected APIs 401/403 (exports, media, files, receipts, webhook, internal revalidation); customer cannot reach admin; content manager can't open payments; IDOR on another customer's class page → 404; meeting link absent from public HTML; owner opens all 25 admin areas without errors; create & publish an article and view it publicly; create a contact, log a note and move it in the pipeline.
-
-Screenshots of the real implemented screens: `docs/screenshots/` (home desktop & mobile, masterclass registration, article, mobile booking, checkout status, admin dashboard, CRM list & pipeline, masterclasses, bookings, reconciliation, Website Studio, portal on mobile, protected class page).
-
-## 6. Security findings and fixes
-
-Found and fixed during the build: plaintext booking-management token was briefly stored with an order (replaced by minting a fresh token at confirmation); refund retries with the same idempotency key threw instead of no-op (fixed, tested); a malformed `javascript:` email button was left as inert text (now dropped); constructor-name error mapping would break under minification (replaced with a base class); `datetime-local` inputs interpreted in DB time zone (now business time zone); header overflow at 320 px; calendar used an invalid ARIA grid. `pnpm audit --prod`: 2 moderate advisories (minimatch via the shadcn CLI, uuid via exceljs) — shadcn moved to dev dependencies and uuid overridden to 11.x; **now 0 known vulnerabilities**. See SECURITY.md for controls and known gaps (MFA for local auth, no external pen test).
-
-## 7. Performance (actual Lighthouse 12, local production build on a MacBook, `next start`, Lighthouse default simulated throttling)
-
-| Page | Mobile perf | Desktop perf | A11y | Best pr. | Mobile LCP | Desktop LCP | CLS |
-|---|---|---|---|---|---|---|---|
-| Home | 96 | 100 | 100 | 100 | 2.8 s | 0.6 s | 0 |
-| Masterclass landing | 96 | 100 | 100 | 96 | 2.8 s | 0.7 s | 0 |
-| Article | 96 | 100 | 100 | 100 | 2.8 s | 0.6 s | 0 |
-| Booking | 96 | 100 | 100 | 100 | 2.8 s | 0.6 s | ≤0.005 |
-
-SEO scored 63–66 solely because indexing is intentionally disabled before launch (`is-crawlable`); it is the only failing SEO audit. **Mobile LCP (2.8 s) misses the 2.5 s target** under simulated slow 4G — 87% is render delay while web fonts load; trimming unused font weights and preloads improved it from 3.5 s. TBT ≤ 20 ms (INP proxy). Not measured on Contabo/Cloudflare or real devices.
-
-## 8. Database migration status
-
-9 migrations (`supabase/migrations/2026112500000{1..9}_*.sql`) apply cleanly on PostgreSQL 18 (dev, test and restore databases); migration runner records checksums. Not yet applied to Supabase (no credentials).
-
-## 9. Backup and restoration evidence
-
-`scripts/backup.sh` produced an AES-256 encrypted `pg_dump` (272 KB) with SHA-256 checksum; `scripts/restore.sh` restored it into an isolated `brand_restore_check` database. Row counts matched the source exactly (migrations 9, pages 7, events 2, users 1, audit 4) and the restored database contained the capacity trigger, immutability trigger and no-overlap exclusion constraint. A wrong passphrase aborted the restore. Not yet run against Supabase or Contabo.
-
-## 10. Deployment status
-
-**Not deployed.** Dockerfile (web + worker targets), compose (joins the existing proxy network, resource limits, log rotation, restart policy), Caddy snippet, deploy script (pre-deploy backup → build → migrate → health check), rollback procedure and backup cron are written but **have not been built or run** (Docker unavailable locally; no server access). The Next.js production build succeeds (`output: standalone`); the worker ran against the dev database, processed all queued jobs, delivered 14 queued emails to the dev mailbox, ran all 9 scheduled tasks and shut down gracefully on SIGTERM.
-
-## 11. Estimated operating costs (monthly; verify current prices before committing)
-
-| Item | Estimate |
+| | URL |
 |---|---|
-| Contabo server | Existing — no new cost (needs ~1.2 GB RAM headroom) |
-| Supabase | Free $0 now; **Pro from $25** recommended before real payments (verified on supabase.com/pricing 2026-11-26) — or $0 extra if the database moves to Contabo |
-| Cloudflare DNS/CDN | Free plan sufficient |
-| Cloudflare R2 | Likely $0–2 at this scale (R2 has a free storage allowance and no egress fees; check Cloudflare's current pricing) |
-| SMTP | $0 on a free tier for low volume; ~$10–25 if campaigns grow |
-| Paystack | No monthly fee; per-transaction fee (check current Ghana rates) |
-| mNotify SMS (optional) | Pay-per-SMS |
-| AI assistant (optional) | Pay-per-use, capped by `AI_MONTHLY_REQUEST_LIMIT` |
+| Staging / public / Studio / portal | **None yet.** No Contabo SSH, Docker, DNS or GitHub access was supplied for this project. Access belonging to other projects was refused by the environment's permission checks and was not worked around. After deployment: `https://<staging-host>/`, `/admin` (Studio), `/portal`. |
 
-## 12. Required client information
+## What was done in this phase
 
-Brand name and professional title, logo, colour preferences, professional photographs (portrait, working shots), biography and career story, positioning statement, services with descriptions/durations/prices/policies, working hours and time zone, upcoming masterclasses and ticket prices, courses/products and files, speaking topics and past engagements (with permission), press links, testimonials **with written consent**, case studies **with client approval**, social profile URLs, business contact details and legal name, refund/cancellation policy decisions, and lawyer-reviewed privacy policy and terms.
+**Priority 0**
+- **Supabase removed completely** — no Supabase code, config, roles, migrations folder or docs remain. Standard PostgreSQL migrations in `db/`; RLS on and all privileges revoked from `PUBLIC`; private PostgreSQL container (no published port) with a least-privilege `brand_app` role.
+- **Authentication** — built-in sessions; **staff TOTP MFA** (replay-protected, recovery codes, enforced in production: staff without MFA hold no permissions); **recent re-authentication** for credentials, team/roles, refunds and offline payments; **shell-only first-admin provisioning** via a single-use set-password link; MFA recovery reset from the shell; common-password denylist.
+- **Integration Centre** (Studio → Integrations) for Paystack, Hubtel, Google Calendar/Meet, Zoom, SMTP, R2, mNotify, AI: forms, masked secrets, setup steps, copyable webhook/callback/redirect URLs, test/live modes, enable/disable, real connection tests, last success/failure, the six required statuses — **"Connected" only when the exact current configuration passed a real test**. AES-256-GCM vault, master keys outside PostgreSQL, key versioning + rotation script, audit without values, SSRF guard.
+- **Paystack** — resolved from the encrypted store without redeploys; separate test/live keys; channels; verification of reference/amount/currency through the creating provider only; live mode locked behind `PAYMENTS_LIVE_APPROVED`.
+- **Masterclasses** — one-screen quick create (title, summary, flyer upload, date/duration, online/in-person/hybrid, Zoom/Meet/pasted link, free/paid, seats, early bird, registration deadline, waitlist) → ready page with preview, publish, copy link, WhatsApp/LinkedIn share links, tracked campaign link and OG preview; staff-only draft preview; OG/Twitter images from the flyer.
+- **Media** — focal point, cropped copies (16:9, link preview, square, portrait), responsive variants, storage usage.
 
-## 13. Required external credentials
+**Priority 1**: Hubtel adapter (signed callbacks + mandatory status check, manual refund confirmation), Google Calendar (OAuth, calendar selection, busy-time sync into availability, invitations, Meet), Zoom (S2S OAuth meetings for bookings and masterclasses, update on reschedule, delete on cancel, manual fallback), **Finance** (ledger-based received/refunded/net/pending, by provider/type/item, filtered transactions, CSV + Excel), global search, activity centre, data-derived launch checklist, testimonial requests to verified clients, consented abandoned-checkout reminders, branded receipts with logo, configurable certificates, payment-provider selection.
 
-`DATABASE_URL` (+ `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for Supabase Auth) · `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY` (test first) · `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` · `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BUCKET`, `R2_PRIVATE_BUCKET`, `R2_PUBLIC_BASE_URL` · Contabo SSH access + shared proxy network name · Cloudflare DNS access · optional: `GOOGLE_CLIENT_ID/SECRET`, `MNOTIFY_API_KEY`/`MNOTIFY_SENDER_ID`, `ANTHROPIC_API_KEY`. Generate `APP_SECRET` and `BACKUP_PASSPHRASE` on the server.
+**Reliability & performance**: encrypted backups with business manifest, verified restore tests, live-DB refusal, verified off-site copy code with retention, Studio alert on failure; mobile LCP improved; hydration bug fixed; export-prefetch bug fixed.
 
-## 14. Known limitations
+## Test results (all on real PostgreSQL; none skipped)
 
-Listed in §2 plus: mobile LCP above target on simulated slow 4G; Supabase Free has no backups and pauses after a week of inactivity (worker activity keeps it awake; independent backups mitigate data loss); a forwarded meeting link can be used by others (use provider-side registration for premium sessions); 8 lint warnings for intentional reset-on-navigation effects; the demo content must be removed before launch (`pnpm db:demo:remove`).
+| Suite | Result |
+|---|---|
+| Vitest unit + integration | **117 / 117 passed** (65 original + 52 new: vault, TOTP RFC vectors, SSRF, status rules, Hubtel request/response mapping, Integration Centre store, provider isolation, Hubtel callback tokens, manual refunds, MFA replay & recovery, key rotation, quick create, finance + XLSX, search/activity scoping, onboarding, testimonial requests, abandoned checkout, media crop/EXIF, branded certificates, password policy) |
+| Playwright E2E (desktop + Pixel 7, axe) | **47 / 47 passed** on a fresh dev server (41 original + 6 new: MFA enrol & recovery sign-in, Integration Centre secret handling/SSRF/status, quick masterclass → public page, finance/search/activity + no export prefetch, Studio on a phone). One earlier run had 33 failures caused by a stale dev server after production rebuilds; restarted and re-ran: all pass. |
+| Public E2E against the **production build** | 32 / 32 passed |
+| Typecheck / lint / production build | Pass / 0 errors (14 warnings) / Pass |
+| Hydration | No errors in en-US/New York and fr-FR/Paris browsers on 5 key pages |
 
-## 15. Remaining production approval requirements
+## Integration status
 
-1. Owner approval to create/upgrade paid services (Supabase Pro or self-hosted DB decision).
-2. Staging deployment on Contabo with test credentials, then full manual test of paid flows with Paystack test cards/MoMo, refunds and webhooks.
-3. Real backup cron running and one restore drill on the production database.
-4. Legal review of policies; real brand content; demo content removed.
-5. Explicit approval to switch DNS and to enable live Paystack keys (`PAYMENTS_LIVE_APPROVED=true`), followed by one small real transaction and refund.
+| Integration | Status |
+|---|---|
+| PostgreSQL | **Working** locally (PG 18) incl. migrations, constraints, backups, restore. Production container config written, **not run** (no server). |
+| Paystack | Implemented & tested with a test double / HMAC vectors. **Not verified with Paystack** (no test keys). |
+| Hubtel | Implemented from published API descriptions (docs unreachable). **Unverified**; locked until live approval. |
+| Google Calendar | Implemented. **Unverified** (no OAuth client). |
+| Google Meet | Implemented via Calendar conferenceData. **Unverified.** |
+| Zoom | Implemented. **Unverified** (no S2S app). |
+| Email (SMTP) | Implemented; dev mail sink tested; SSRF refusal tested. **Unverified with a real SMTP account.** |
+| R2 | Implemented with write/read/delete test. **Unverified** (no credentials). |
+| mNotify / AI | Implemented. **Unverified.** |
 
-## 16. Recommendation
+No integration is shown or reported as Connected without a real passing test.
 
-**NO-GO for production with live payments today** — external integrations (Paystack, SMTP, R2, Supabase Auth) are unverified, nothing has been deployed, and Supabase Free provides no backups.
+## Backup evidence (local)
 
-**GO for staging deployment** as soon as the credentials in §13 are provided. The core business logic, security controls and data integrity are implemented and tested; the remaining work is configuration, verification against the real services, and client content.
+`backup.sh` → 304 KB encrypted dump + checksum + encrypted manifest. Restore into the live DB → **REFUSED**. Wrong passphrase → fails. `verify-backup.sh` into a throwaway DB → **27/27 checks**: all 81 tables' row counts, ledger 15000→15000, paid orders, receipts, no orphans, ledger = total − refunds per order, double-booking constraint and immutability triggers present, owner account + scrypt hashes, **stored integration credential decrypts with the master key**. Wrong master key → detected (26/27). Scratch DBs left: 0. Off-site upload and the server cron: **not exercised** (no backup bucket/server).
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for the full checklist (auth bypass, escalation, IDOR, payment manipulation, webhooks, double booking/overselling, access control, credential leakage, uploads, XSS, CSRF, SQLi, rate limiting, unsafe endpoints). Findings fixed this phase: React hydration mismatch from browser-locale formatting; export routes prefetched by `next/link` (exports generated and audited on page view); `recordTestResult` failure path SQL bug (found by tests). `pnpm audit --prod`: **0 known vulnerabilities** (1 moderate in a dev-only CLI). No external penetration test was run.
+
+## Performance (Lighthouse 12, production build, simulated mobile 4G)
+
+| Page | Mobile LCP (before → after) | Mobile perf | Desktop LCP |
+|---|---|---|---|
+| Home | 2.8 → **2.5 s** | 98 | 0.6 s |
+| Masterclass | 2.8 → **2.5 s** | 98 | 0.7 s |
+| Article | 2.8 → **2.3 s** | 98 | 0.5 s |
+| Booking | 2.8 → **2.3 s** | 98 | 0.6 s |
+
+Changes: public pages get their own stylesheet (55 KB vs 123 KB raw), single display-font weight. Accessibility 100; SEO 63–66 only because staging is deliberately `noindex`; Best Practices 96 on the masterclass page was the hydration error, fixed afterwards (verified in browsers, Lighthouse not re-run). Lab measurement on demo content — re-measure with real photography on staging.
+
+## Screenshots
+
+`docs/screenshots/` (production build): public home, masterclass, booking and link-in-bio (desktop + mobile); Studio dashboard, Integrations, quick masterclass and finance (desktop + mobile); launch checklist, activity, security and media (desktop).
+
+## Admin onboarding procedure
+
+[ADMIN-ONBOARDING.md](ADMIN-ONBOARDING.md): operator runs `create-owner` in the tools container → single-use link (60 min) → client sets password → enrols MFA and saves recovery codes → follows Studio → Get started.
+
+## What's still needed
+
+**Access (operator):** project-specific SSH to the Contabo server (or a deploy user), the shared proxy network name, a staging hostname + DNS record, a GitHub remote for this repository.
+
+**Credentials (client, entered in Studio):** Paystack test keys (later live keys + business verification), SMTP account for the sending domain (+ SPF/DKIM/DMARC), Cloudflare R2 buckets + token, optional Google OAuth client, Zoom S2S app, Hubtel API access + IP whitelisting, mNotify key + approved sender ID, Anthropic key. **Operator only:** a dedicated R2 backup bucket + scoped token, `BACKUP_PASSPHRASE`, master keys stored offline.
+
+**Client information:** final brand name, title, bio, portrait and photography, logo, services and prices, masterclass flyers, real testimonials with consent, legal name/address for receipts, lawyer-reviewed privacy policy and terms, refund/cancellation policies.
+
+## Go-live checklist
+
+1. Staging deployed over HTTPS; health check and backup job green; a verified restore test on the server.
+2. Every required integration shows **Connected**; one Paystack test payment, webhook and refund end-to-end.
+3. Client content entered; demo content removed (launch checklist shows it).
+4. External security review; `PAYMENTS_LIVE_APPROVED=true` and live keys only with the client's written approval; one small real payment and refund.
+5. Production DNS switch with approval; enable indexing.
