@@ -24,7 +24,7 @@ echo "== stop staging worker (web keeps serving)"; pkill -f "run.sh worker" || t
 echo "== encrypted export"
 openssl rand -base64 33 | tr -d '\n' > "$OUT/passphrase"
 BACKUP_PASSPHRASE="$(cat "$OUT/passphrase")" DATABASE_URL="postgres://localhost/brand_staging?host=/tmp" scripts/backup.sh "$OUT" | tail -1
-tar -C "$ST" -czf "$OUT/media.tgz" storage 2>/dev/null || tar -czf "$OUT/media.tgz" -T /dev/null
+COPYFILE_DISABLE=1 tar -C "$ST" -czf "$OUT/media.tgz" storage 2>/dev/null || tar -czf "$OUT/media.tgz" -T /dev/null
 grep -E '^(APP_SECRET|CREDENTIALS_MASTER_KEYS)=' "$ST/env" > "$OUT/keys.env"
 
 echo "== copy to server (encrypted dump; keys + passphrase over SSH only)"
