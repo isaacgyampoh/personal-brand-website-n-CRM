@@ -15,7 +15,7 @@ for f in "$ENV_FILE" .env.backup secrets/postgres_admin_password secrets/app_db_
   [ -f "$f" ] || { echo "Missing deployment/$f — see docs/DEPLOYMENT.md (templates: .env.production.example, .env.backup.example)"; exit 1; }
 done
 for f in "$ENV_FILE" .env.backup secrets/postgres_admin_password secrets/app_db_password; do
-  [ "$(stat -c %a "$f" 2>/dev/null || stat -f %Lp "$f")" -le 600 ] || { echo "deployment/$f must be chmod 600"; exit 1; }
+  [ "$(stat -L -c %a "$f" 2>/dev/null || stat -L -f %Lp "$f")" -le 600 ] || { echo "deployment/$f must be chmod 600"; exit 1; }
 done
 grep -q '^CREDENTIALS_MASTER_KEYS=[0-9]\+:.\+' "$ENV_FILE" || { echo "CREDENTIALS_MASTER_KEYS is not set in $ENV_FILE"; exit 1; }
 docker network inspect "${PROXY_NETWORK:-proxy}" >/dev/null || { echo "Shared proxy network '${PROXY_NETWORK:-proxy}' not found — set PROXY_NETWORK to the existing one"; exit 1; }
