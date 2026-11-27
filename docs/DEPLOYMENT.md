@@ -1,6 +1,6 @@
 # Deployment — Contabo (Docker + the existing reverse proxy)
 
-> **Status: not deployed.** No access to the Contabo server, Docker host, GitHub remote or DNS was provided for this project, and access belonging to other projects was (correctly) not used. The production build passes locally; the Docker images in this repository have **not** been built or run. Follow this runbook once project-specific SSH access is granted.
+> **Status (2026-11-27): deployed** on Contabo `169.58.120.116` as Compose project `esther` behind the shared `central-caddy`, at the temporary HTTPS host `https://esther.169-58-120-116.sslip.io` (Let's Encrypt, `noindex`). Payments not live (`PAYMENTS_LIVE_APPROVED=false`); media on the local volume until project-specific R2 buckets are connected; nightly encrypted backups 02:30 UTC and a 5-minute health monitor run from the `esther-deploy` crontab. The shared proxy has `admin off` — load config changes with `/srv/central/compose/central.sh restart caddy` only in a quiet window for the other apps on that host.
 
 ## 0. Inspect the server first (read-only)
 
