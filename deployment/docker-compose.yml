@@ -37,6 +37,8 @@ services:
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
+    volumes:
+      - media:/app/.data/storage    # brand logo for PDFs while local storage is in use
     networks: [internal]
     deploy:
       resources:

@@ -19,7 +19,7 @@ RUN pnpm build
 FROM node:${NODE_VERSION} AS web
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
-RUN addgroup -S app && adduser -S app -G app
+RUN addgroup -S app && adduser -S app -G app && mkdir -p /app/.data/storage && chown -R app:app /app/.data
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
 COPY --from=build --chown=app:app /app/public ./public
@@ -34,6 +34,7 @@ ENV NODE_ENV=production
 # Database client + openssl for encrypted backups and restore verification (tools profile).
 RUN apk add --no-cache postgresql17-client openssl bash && addgroup -S app && adduser -S app -G app
 COPY --chown=app:app . .
+RUN mkdir -p /app/.data/storage && chown -R app:app /app/.data
 USER app
 # Runs pending migrations, then the worker loop (safe to run more than one replica).
-CMD ["sh", "-c", "npx tsx scripts/migrate.ts && exec npx tsx --tsconfig tsconfig.worker.json workers/worker.ts"]
+CMD ["sh", "-c", "npx tsx scripts/migrate.ts --seed-if-empty && exec npx tsx --tsconfig tsconfig.worker.json workers/worker.ts"]

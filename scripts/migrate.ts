@@ -57,7 +57,11 @@ async function main() {
         throw error;
       }
     }
-    if (process.argv.includes("--seed")) {
+    // --seed-if-empty: reference data for a brand-new database only, so restarts never
+    // re-grant role permissions the owner has deliberately removed.
+    const seedIfEmpty = process.argv.includes("--seed-if-empty")
+      && Number((await client.query("select count(*)::int as n from role_permissions")).rows[0].n) === 0;
+    if (process.argv.includes("--seed") || seedIfEmpty) {
       const seed = readFileSync(join(process.cwd(), "db", "seed.sql"), "utf8");
       await client.query("begin");
       await client.query(seed);
