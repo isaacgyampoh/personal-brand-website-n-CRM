@@ -38,15 +38,15 @@ export function totp(base32: string, step = Math.floor(Date.now() / 30000)): str
   return String((h.readUInt32BE(o) & 0x7fffffff) % 1_000_000).padStart(6, "0");
 }
 
-let lastStep = 0;
 /** Next unused TOTP step (the app rejects replayed codes), waiting for a new 30 s window if needed. */
-async function freshCode(secret: string): Promise<string> {
+async function freshCode(secret: string, email: string): Promise<string> {
+  // The last accepted step lives in the database, so this also works across test worker processes.
+  const lastStep = Number((await sql<{ s: string | null }>("select mfa_last_step as s from users where email = $1", [email]))[0]?.s ?? 0);
   let step = Math.floor(Date.now() / 30000);
   if (step <= lastStep) {
     await new Promise((r) => setTimeout(r, (lastStep + 1) * 30000 - Date.now() + 500));
     step = Math.floor(Date.now() / 30000);
   }
-  lastStep = step;
   return totp(secret, step);
 }
 
@@ -61,7 +61,7 @@ export async function login(page: Page, email = OWNER.email, password = OWNER.pa
   if (new URL(page.url()).pathname === "/login/mfa") {
     const secret = email === OWNER.email ? process.env.E2E_OWNER_TOTP_SECRET : undefined;
     if (!secret) throw new Error("This account needs MFA; set E2E_OWNER_TOTP_SECRET for the test owner.");
-    await page.fill("#a-code", await freshCode(secret));
+    await page.fill("#a-code", await freshCode(secret, email));
     await page.getByRole("button", { name: "Verify" }).click();
     await page.waitForURL((u) => !u.pathname.startsWith("/login"));
   }
