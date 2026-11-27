@@ -3,6 +3,7 @@ import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { db } from "@/lib/database/pool";
 import { getPublishedPage } from "@/features/website/application/public-queries";
 import { RenderBlocks } from "@/components/website/blocks";
+import { getPublicSettings } from "@/lib/cache";
 import { PageHeader } from "@/components/website/page-header";
 import { EmailLink } from "@/components/shared/email-text";
 import type { PageData, PageSeo } from "@/features/website-builder/domain/blocks";
@@ -14,9 +15,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = await getPublishedPage(slug);
   if (!page) return { robots: { index: false, follow: false } };
   const seo = (page.seo ?? {}) as Partial<PageSeo>;
+  const site = await getPublicSettings();
   return {
     title: seo.title || page.title,
-    description: seo.description || undefined,
+    // Fall back to the site description so every page has one (search snippets, link previews).
+    description: seo.description || site.seo.defaultDescription || site.brand.shortBio || undefined,
     alternates: { canonical: seo.canonical || `/${slug}` },
     openGraph: { images: seo.ogImageUrl || undefined },
     robots: seo.noindex ? { index: false } : undefined,

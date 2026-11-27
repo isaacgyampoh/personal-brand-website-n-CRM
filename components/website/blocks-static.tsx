@@ -26,9 +26,12 @@ export function Eyebrow({ text }: { text?: string }) {
   return text ? <p className="eyebrow eyebrow-rule">{text}</p> : null;
 }
 
-export function Img({ src, alt, className = "", priority = false }: { src: string; alt: string; className?: string; priority?: boolean }) {
+/** Responsive candidates for uploaded images, filled in server-side by RenderBlocks (features/media/application/srcset.ts). */
+export type SrcSets = Record<string, string>;
+
+export function Img({ src, alt, className = "", priority = false, srcSet, sizes }: { src: string; alt: string; className?: string; priority?: boolean; srcSet?: string; sizes?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} className={className} loading={priority ? "eager" : "lazy"} decoding="async" {...(priority ? { fetchPriority: "high" as const } : {})} />;
+  return <img src={src} alt={alt} className={className} loading={priority ? "eager" : "lazy"} decoding="async" {...(srcSet ? { srcSet, sizes: sizes ?? "100vw" } : {})} {...(priority ? { fetchPriority: "high" as const } : {})} />;
 }
 
 export function videoEmbed(url: string): string | null {
@@ -94,7 +97,7 @@ export function Hero(p: BlockProps<"Hero">) {
   if (p.variant === "portrait-full" && p.imageUrl) {
     return (
       <section className="relative isolate min-h-[88svh] overflow-hidden text-[var(--paper)]">
-        <Img src={p.imageUrl} alt={p.imageAlt} priority className="absolute inset-0 -z-10 size-full object-cover object-[60%_20%]" />
+        <Img src={p.imageUrl} alt={p.imageAlt} priority srcSet={(p as { imageSrcSet?: string }).imageSrcSet} sizes="100vw" className="absolute inset-0 -z-10 size-full object-cover object-[60%_20%]" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/75 via-black/30 to-black/10" aria-hidden />
         <div className="site-container flex min-h-[88svh] flex-col justify-end pb-16 pt-32 md:pb-24">
           <div className="max-w-3xl [--muted-ink:rgba(255,255,255,.8)] [&_.btn-primary]:bg-[var(--paper)] [&_.btn-primary]:text-[var(--ink)]">
@@ -126,7 +129,7 @@ export function Hero(p: BlockProps<"Hero">) {
           ) : (
             <>
               <div className="img-frame aspect-[4/5]">
-                <Img src={p.imageUrl} alt={p.imageAlt} priority className="absolute inset-0 size-full object-cover" />
+                <Img src={p.imageUrl} alt={p.imageAlt} priority srcSet={(p as { imageSrcSet?: string }).imageSrcSet} sizes="(min-width: 1024px) 40vw, 90vw" className="absolute inset-0 size-full object-cover" />
               </div>
               <div aria-hidden className="absolute -bottom-6 -left-6 hidden h-40 w-40 border border-[var(--brand-accent)] lg:block" />
             </>
@@ -144,7 +147,7 @@ export function Introduction(p: BlockProps<"Introduction">) {
       <div className="site-container grid gap-12 lg:grid-cols-12">
         {p.imageUrl && (
           <div className="reveal lg:col-span-4">
-            <div className="img-frame aspect-[3/4]"><Img src={p.imageUrl} alt={p.imageAlt} className="absolute inset-0 size-full object-cover" /></div>
+            <div className="img-frame aspect-[3/4]"><Img src={p.imageUrl} alt={p.imageAlt} srcSet={(p as { imageSrcSet?: string }).imageSrcSet} sizes="(min-width: 1024px) 40vw, 90vw" className="absolute inset-0 size-full object-cover" /></div>
           </div>
         )}
         <div className={`reveal ${p.imageUrl ? "lg:col-span-7 lg:col-start-6" : "lg:col-span-8 lg:col-start-3"}`}>
@@ -196,7 +199,7 @@ export function ImageText(p: BlockProps<"ImageText">) {
   if (!p.heading && !p.body) return null;
   const image = p.imageUrl && (
     <div className="reveal lg:col-span-6">
-      <div className="img-frame aspect-[5/6]"><Img src={p.imageUrl} alt={p.imageAlt} className="absolute inset-0 size-full object-cover" /></div>
+      <div className="img-frame aspect-[5/6]"><Img src={p.imageUrl} alt={p.imageAlt} srcSet={(p as { imageSrcSet?: string }).imageSrcSet} sizes="(min-width: 1024px) 45vw, 90vw" className="absolute inset-0 size-full object-cover" /></div>
     </div>
   );
   return (

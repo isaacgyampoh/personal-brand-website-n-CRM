@@ -250,6 +250,8 @@
 .tone-ink .btn-primary { background: var(--paper); color: var(--ink); }
 .tone-ink .btn-primary:hover { background: var(--brand-accent); color: var(--brand-accent-ink); }
 .tone-ink .lede { color: color-mix(in oklab, var(--paper) 82%, var(--ink)); }
+/* Accent words on dark sections need a lighter tint of the brand colour to stay legible (WCAG AA). */
+.tone-ink .display-xl em, .tone-ink .display-lg em, .tone-ink .display-md em, .tone-ink .display-sm em { color: color-mix(in oklab, var(--brand-accent) 45%, var(--paper)); }
 .tone-accent { background: var(--brand-accent); color: var(--brand-accent-ink); --muted-ink: color-mix(in oklab, var(--brand-accent-ink) 75%, var(--brand-accent)); --line: color-mix(in oklab, var(--brand-accent-ink) 25%, transparent); }
 .tone-accent .display-xl em, .tone-accent .display-lg em, .tone-accent .display-md em { color: inherit; }
 .tone-accent .btn-primary { background: var(--brand-accent-ink); color: var(--brand-accent); }

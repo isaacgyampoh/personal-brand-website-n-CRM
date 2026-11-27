@@ -6,6 +6,7 @@ import {
 import { ArticleCard, CourseCard, EventCard, ServiceCard, priceLabel } from "./cards";
 import { Emphasis, Paragraphs } from "./emphasis";
 import { getPublicSettings } from "@/lib/cache";
+import { srcSetsFor } from "@/features/media/application/srcset";
 import { Eyebrow, Img, SectionHead, toneClass, Hero, Introduction, Statement, EditorialText, ImageText, Stats, Logos, Timeline, Speaking, Gallery, Video, Faq, Pricing, Newsletter, CallToAction, Assessment, Spacer } from "./blocks-static";
 
 /* Data-backed blocks (server only) ---------------------------------------- */
@@ -146,12 +147,13 @@ async function Profile(p: BlockProps<"Profile">) {
     p.showQualifications && { title: "Qualifications", items: lines(s.profile.qualifications) },
   ].filter((x): x is { title: string; items: string[] } => Boolean(x && x.items.length));
   const image = p.imageUrl || s.brand.portraitUrl;
+  const srcSet = image ? (await srcSetsFor([image]).catch(() => ({} as Record<string, string>)))[image] : undefined;
   return (
     <section className={`${toneClass(p.tone)} section-y`}>
       <div className="site-container grid gap-12 lg:grid-cols-12 lg:gap-16">
         {image && (
           <div className="reveal lg:col-span-5">
-            <div className="img-frame aspect-[4/5] lg:sticky lg:top-28"><Img src={image} alt={p.imageAlt || s.brand.portraitAlt || s.profile.fullName || s.brand.name} className="absolute inset-0 size-full object-cover" /></div>
+            <div className="img-frame aspect-[4/5] lg:sticky lg:top-28"><Img src={image} alt={p.imageAlt || s.brand.portraitAlt || s.profile.fullName || s.brand.name} srcSet={srcSet} sizes="(min-width: 1024px) 40vw, 90vw" className="absolute inset-0 size-full object-cover" /></div>
           </div>
         )}
         <div className={`reveal ${image ? "lg:col-span-6 lg:col-start-7" : "lg:col-span-8"}`}>
@@ -183,13 +185,17 @@ const RENDERERS: { [K in Block["type"]]: (p: BlockProps<K>) => React.ReactNode |
   Timeline, Speaking, Gallery, Video, Faq, Pricing, Newsletter, CallToAction, BookingCard, Assessment, Spacer, Profile,
 };
 
-export function RenderBlocks({ blocks }: { blocks: Block[] }) {
+export async function RenderBlocks({ blocks }: { blocks: Block[] }) {
+  // Responsive image candidates for uploaded photos (phones get the 480/960 px versions).
+  const sets = await srcSetsFor(blocks.map((b) => (b.props as { imageUrl?: string }).imageUrl ?? "")).catch(() => ({} as Record<string, string>));
   return (
     <>
       {blocks.map((b, i) => {
         if ((b.props as { hidden?: boolean }).hidden) return null;
         const Component = RENDERERS[b.type] as (p: unknown) => React.ReactNode;
-        return Component ? <Component key={(b.props as { id?: string }).id ?? i} {...b.props} /> : null;
+        const url = (b.props as { imageUrl?: string }).imageUrl;
+        const props = url && sets[url] ? { ...b.props, imageSrcSet: sets[url] } : b.props;
+        return Component ? <Component key={(b.props as { id?: string }).id ?? i} {...props} /> : null;
       })}
     </>
   );
