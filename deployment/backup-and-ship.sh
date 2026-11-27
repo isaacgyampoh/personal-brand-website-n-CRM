@@ -22,20 +22,24 @@ fail() {
 }
 
 run scripts/backup.sh /backups || fail "backup step failed"
+# Media stored on this server (uploads before R2 was connected, generated files) — encrypted archive.
+MEDIA="media-$(date -u +%Y%m%dT%H%M%SZ).tgz.enc"
+docker compose run --rm -T --no-deps --entrypoint sh web -c 'tar -czf - -C /app/.data storage' \
+  | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_PASSPHRASE -out "${BACKUP_DIR:-/var/backups/brand-platform}/$MEDIA" || fail "media archive failed"
+chmod 644 "${BACKUP_DIR:-/var/backups/brand-platform}/$MEDIA"
+ls -1t "${BACKUP_DIR:-/var/backups/brand-platform}"/media-*.tgz.enc 2>/dev/null | tail -n +8 | xargs -r rm -f
 LATEST="$(ls -1t "${BACKUP_DIR:-/var/backups/brand-platform}"/brand-*.dump.enc | head -1)"
 NAME="$(basename "$LATEST")"
 OFFSITE=0; grep -q '^BACKUP_R2_BUCKET=.\+' "${BACKUP_ENV_FILE:-.env.backup}" 2>/dev/null && OFFSITE=1
 if [ "$OFFSITE" = 1 ]; then
-  run npx tsx scripts/offsite.ts upload "/backups/$NAME" "/backups/$NAME.sha256" "/backups/$NAME.manifest.enc" || fail "off-site upload/verification failed"
+  run npx tsx scripts/offsite.ts upload "/backups/$NAME" "/backups/$NAME.sha256" "/backups/$NAME.manifest.enc" "/backups/$MEDIA" || fail "off-site upload/verification failed"
+  # Photos and files kept in R2 are copied (server-side) into the private backup bucket.
+  run npx tsx scripts/offsite.ts mirror "$REMOTE_KEEP_DAYS" || fail "off-site media copy failed"
 else
   echo "NOTICE: off-site copy not configured (no BACKUP_R2_* in .env.backup) — backup kept on this server only"
 fi
 # restore.sh treats DATABASE_URL as the live database and refuses to restore into it.
 run scripts/verify-backup.sh "/backups/$NAME" || fail "restore verification failed for $NAME"
 [ "$OFFSITE" = 1 ] && { run npx tsx scripts/offsite.ts prune "$REMOTE_KEEP_DAYS" || fail "off-site retention step failed"; }
-# Media (uploaded photos/files) — encrypted archive alongside the database backup while R2 is not in use.
-docker compose run --rm -T --no-deps --entrypoint sh -v "${BACKUP_DIR:-/var/backups/brand-platform}":/backups web -c 'tar -czf - -C /app/.data storage' \
-  | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_PASSPHRASE -out "${BACKUP_DIR:-/var/backups/brand-platform}/media-$(date -u +%Y%m%dT%H%M%SZ).tgz.enc" || fail "media archive failed"
-ls -1t "${BACKUP_DIR:-/var/backups/brand-platform}"/media-*.tgz.enc 2>/dev/null | tail -n +8 | xargs -r rm -f
 [ -n "${HEALTHCHECK_URL:-}" ] && curl -fsS -m 10 --retry 3 "$HEALTHCHECK_URL" >/dev/null || true
 echo "=== $(date -u +%FT%TZ) backup OK: $NAME"
