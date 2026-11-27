@@ -1,0 +1,141 @@
+/* Website pop-ups. Loaded only when a pop-up is actually shown (dynamic chunk).
+   Colours come from the brand theme (--brand-accent, --ink, --paper) unless the
+   pop-up overrides them (--pp-*). Container queries make the Studio preview
+   frames (desktop / mobile) render exactly like the live site. */
+
+.pp-root {
+  --pp-a: var(--pp-accent, var(--brand-accent, #8c2350));
+  --pp-bg: var(--pp-background, var(--paper, #fbf8f4));
+  --pp-fg: var(--pp-text, var(--ink, #1d1a17));
+  --pp-muted: color-mix(in oklab, var(--pp-fg) 62%, var(--pp-bg));
+  --pp-line: color-mix(in oklab, var(--pp-fg) 14%, var(--pp-bg));
+  --pp-a-ink: var(--brand-accent-ink, #fff);
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  container: pp / inline-size;
+  font-family: var(--site-body, var(--font-manrope, system-ui)), system-ui, sans-serif;
+  color: var(--pp-fg);
+}
+.pp-root[data-mode="preview"] { position: absolute; z-index: 1; }
+.pp-root.pp-sheet { pointer-events: none; }
+.pp-root[data-mode="preview"] .pp-backdrop { backdrop-filter: none; } /* blur mirrors edges inside the scaled preview frame */
+/* Layout lives on an inner stage: a container query cannot restyle the container itself. */
+.pp-stage { position: absolute; inset: 0; display: grid; place-items: center; padding: 1.25rem; }
+.pp-sheet .pp-stage { place-items: end; padding: 1rem; }
+
+.pp-backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, #14110f 58%, transparent);
+  backdrop-filter: blur(3px);
+  animation: pp-fade 280ms ease-out both;
+}
+
+.pp-card {
+  position: relative;
+  width: min(100%, 880px);
+  max-height: min(92dvh, 760px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--pp-bg);
+  border-radius: calc(var(--site-radius, 6px) * 2);
+  box-shadow: 0 30px 80px -20px rgb(20 17 15 / 0.45), 0 0 0 1px var(--pp-line);
+  animation: pp-rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  outline: none;
+}
+.pp-editorial .pp-card, .pp-countdown .pp-card { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+.pp-editorial .pp-card:not(:has(.pp-media)), .pp-countdown .pp-card:not(:has(.pp-media)) { grid-template-columns: 1fr; width: min(100%, 560px); }
+.pp-flyer .pp-card { width: min(100%, 520px); }
+.pp-minimal .pp-card { width: min(100%, 480px); text-align: center; }
+.pp-sheet .pp-card { pointer-events: auto; width: min(100%, 400px); max-height: min(80dvh, 640px); animation-name: pp-slide; }
+
+.pp-media { position: relative; margin: 0; background: color-mix(in oklab, var(--pp-fg) 6%, var(--pp-bg)); min-height: 100%; }
+.pp-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pp-flyer .pp-media img { height: auto; max-height: 62dvh; object-fit: contain; }
+.pp-sheet .pp-media img { aspect-ratio: 16 / 9; height: auto; }
+
+.pp-body { padding: clamp(1.5rem, 4cqi, 2.75rem); display: flex; flex-direction: column; justify-content: center; gap: 0.9rem; }
+.pp-flyer .pp-body { padding: 1.1rem 1.35rem 1.35rem; gap: 0.6rem; }
+.pp-sheet .pp-body { padding: 1.25rem 1.35rem 1.4rem; gap: 0.6rem; }
+
+.pp-eyebrow { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600; color: var(--pp-a); }
+.pp-heading {
+  font-family: var(--site-display, var(--font-cormorant, Georgia)), Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(1.65rem, 5.2cqi, 2.6rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  margin: 0;
+}
+.pp-flyer .pp-heading, .pp-sheet .pp-heading { font-size: clamp(1.35rem, 4.4cqi, 1.75rem); }
+.pp-text { margin: 0; color: var(--pp-muted); line-height: 1.6; font-size: 0.97rem; text-wrap: pretty; }
+
+.pp-meta { display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem; margin: 0.2rem 0 0; padding: 0; list-style: none; font-size: 0.86rem; }
+.pp-minimal .pp-meta { justify-content: center; }
+.pp-meta li { display: inline-flex; align-items: center; gap: 0.45rem; }
+.pp-meta li::before { content: ""; width: 5px; height: 5px; border-radius: 99px; background: var(--pp-a); }
+.pp-seats { color: var(--pp-a); font-weight: 600; }
+
+.pp-countdown-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; margin: 0.35rem 0; }
+.pp-unit { border: 1px solid var(--pp-line); border-radius: var(--site-radius, 6px); padding: 0.55rem 0.25rem; text-align: center; }
+.pp-unit b { display: block; font-family: var(--site-display, Georgia), Georgia, serif; font-weight: 400; font-size: clamp(1.4rem, 4.6cqi, 2rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.pp-unit span { display: block; margin-top: 0.3rem; font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pp-muted); }
+
+.pp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; margin-top: 0.4rem; }
+.pp-minimal .pp-actions { justify-content: center; }
+.pp-cta {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 3rem; padding: 0 1.6rem; border: 0; cursor: pointer;
+  background: var(--pp-a); color: var(--pp-a-ink);
+  border-radius: var(--site-radius, 6px);
+  font: inherit; font-weight: 600; font-size: 0.95rem; letter-spacing: 0.01em; text-decoration: none;
+  transition: transform 160ms ease, filter 160ms ease;
+}
+.pp-cta:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.pp-cta:focus-visible, .pp-close:focus-visible, .pp-later:focus-visible, .pp-field:focus-visible { outline: 2px solid var(--pp-a); outline-offset: 3px; }
+.pp-flyer .pp-cta, .pp-sheet .pp-cta { width: 100%; }
+.pp-later { background: none; border: 0; padding: 0.4rem 0; font: inherit; font-size: 0.85rem; color: var(--pp-muted); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+.pp-close {
+  position: absolute; top: 0.7rem; right: 0.7rem; z-index: 2;
+  width: 2.75rem; height: 2.75rem; border-radius: 99px; border: 0; cursor: pointer;
+  display: grid; place-items: center;
+  background: color-mix(in oklab, var(--pp-bg) 88%, transparent); color: var(--pp-fg);
+  box-shadow: 0 0 0 1px var(--pp-line);
+  font-size: 1.35rem; line-height: 1;
+}
+
+.pp-form { display: grid; gap: 0.6rem; margin-top: 0.3rem; text-align: left; }
+.pp-field { width: 100%; min-height: 3rem; padding: 0 0.9rem; border: 1px solid var(--pp-line); border-radius: var(--site-radius, 6px); background: color-mix(in oklab, var(--pp-bg) 92%, white); color: var(--pp-fg); font: inherit; }
+.pp-consent { display: flex; gap: 0.55rem; align-items: flex-start; font-size: 0.8rem; color: var(--pp-muted); line-height: 1.45; }
+.pp-consent input { margin-top: 0.2rem; accent-color: var(--pp-a); }
+.pp-hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.pp-msg { font-size: 0.88rem; }
+.pp-msg[data-tone="error"] { color: #b42318; }
+
+/* Phones: modals become a scrollable sheet anchored to the bottom (thumb reach). */
+@container pp (max-width: 640px) {
+  .pp-root:not(.pp-sheet) .pp-stage { place-items: end center; padding: 0; }
+  .pp-editorial .pp-card, .pp-countdown .pp-card { grid-template-columns: 1fr; }
+  .pp-card { width: 100%; max-height: 92dvh; border-radius: calc(var(--site-radius, 6px) * 2.5) calc(var(--site-radius, 6px) * 2.5) 0 0; animation-name: pp-slide; }
+  .pp-sheet .pp-card { width: 100%; }
+  .pp-sheet .pp-stage { padding: 0; }
+  .pp-editorial .pp-media img, .pp-countdown .pp-media img { aspect-ratio: 16 / 10; height: auto; max-height: 27dvh; }
+  .pp-flyer .pp-media img { max-height: 52dvh; }
+  .pp-cta { width: 100%; }
+  .pp-actions { justify-content: center; }
+}
+
+@keyframes pp-fade { from { opacity: 0; } }
+@keyframes pp-rise { from { opacity: 0; transform: translateY(14px) scale(0.985); } }
+@keyframes pp-slide { from { opacity: 0.4; transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .pp-backdrop, .pp-card { animation: none; }
+  .pp-cta { transition: none; }
+}
+
+/* Keep headings clear of the close button when there is no image above them. */
+.pp-card:not(:has(.pp-media)) .pp-heading { padding-right: 2.75rem; }
+.pp-minimal .pp-card .pp-heading { padding-inline: 2.75rem; }

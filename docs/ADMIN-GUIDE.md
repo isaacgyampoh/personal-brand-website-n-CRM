@@ -16,6 +16,8 @@ Everything is done in your browser at **/admin**. You never need to touch code o
 | Upload or crop photos | **Media** (click the important part of a photo to set its focal point; *Create crop* makes a banner or square copy) |
 | Add or change a coaching service and price | **Services** (set hours under **Bookings → Availability**) |
 | Create a masterclass | **Masterclasses → Quick masterclass** — six steps, then *Publish* and *Copy link* |
+| Promote a masterclass with a website pop-up | Open the masterclass → **Website pop-up → Turn on**. It uses the flyer, date, price and seats, counts down to the deadline, and hides itself when registration closes, it sells out (or offers the waiting list), or the event is cancelled or over |
+| Other pop-ups (coaching offer, newsletter, free resource, announcement) | **Pop-ups & campaigns** → pick a template → edit with the desktop/tablet/mobile preview → *Save as draft* → *Publish*. Choose pages, devices, delay, dates, how often and priority (only one shows at a time). Each shows impressions, clicks, conversions and revenue |
 | See and manage bookings | **Bookings** (reschedule, cancel, add a meeting link) |
 | See registrations and check people in | **Masterclasses** → open one → *Attendees* |
 | Partner organisations, gallery photos, homepage sections | **Website** → Home → edit the *Logos*, *Gallery* or any section (add, reorder, hide) → **Publish** |

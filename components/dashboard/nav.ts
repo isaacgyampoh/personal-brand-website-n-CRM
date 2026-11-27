@@ -27,6 +27,7 @@ export const ADMIN_NAV: NavGroup[] = [
   ] },
   { label: "Publish", items: [
     { href: "/admin/website", label: "Website", icon: "Globe", permission: "website:edit" },
+    { href: "/admin/website/popups", label: "Pop-ups & campaigns", icon: "Megaphone", permission: "website:edit" },
     { href: "/admin/content", label: "Content", icon: "PenLine", permission: "content:edit" },
     { href: "/admin/media", label: "Media", icon: "Images", permission: "media:manage" },
     { href: "/admin/proof", label: "Testimonials & press", icon: "Quote", permission: "content:edit" },

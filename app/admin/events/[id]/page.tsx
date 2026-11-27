@@ -15,6 +15,7 @@ import { PageTitle, Panel, StatusBadge, LinkButton, Table, Td, Notice } from "@/
 import { ActionButton, ActionForm, Field, Select, Submit, TextArea } from "@/components/dashboard/forms";
 import { EventForm } from "@/components/dashboard/event-form";
 import { MediaPicker } from "@/components/dashboard/media-picker";
+import { eventPopupAction } from "@/features/popups/presentation/actions";
 
 export const metadata = { title: "Event" };
 const TABS = [["details", "Details"], ["tickets", "Tickets"], ["access", "Joining"], ["schedule", "Sessions"], ["resources", "Resources"], ["attendees", "Attendees"], ["manage", "Manage"]] as const;
@@ -37,6 +38,7 @@ export default async function EventAdmin({ params, searchParams }: { params: Pro
     db.one<{ n: number; avg: number | null }>("select count(*)::int as n, round(avg(rating), 1) as avg from event_feedback f join event_registrations r on r.id = f.registration_id where r.event_id = $1", [id]),
     db.one<{ n: number }>("select count(*)::int as n from event_waitlist where event_id = $1 and status = 'waiting'", [id]),
   ]);
+  const popup = await db.one<{ id: string; status: string }>("select id, status from site_popups where event_id = $1", [id]);
 
   return (
     <div className="space-y-6">
@@ -52,6 +54,19 @@ export default async function EventAdmin({ params, searchParams }: { params: Pro
         </>}
       />
       {e.status === "draft" && <Notice tone="blue">Draft — not visible on the website. Add at least one ticket, then publish.</Notice>}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm">
+        <div>
+          <span className="font-medium">Website pop-up</span>{" "}
+          <StatusBadge status={popup?.status === "active" ? "on" : "off"} tone={popup?.status === "active" ? "green" : "gray"} />
+          <p className="text-xs text-muted-foreground">Promotes registration on the website with the flyer, date, price and seats. Hides itself automatically when registration closes, seats sell out (or switches to &ldquo;Join the waiting list&rdquo;), or the event is cancelled, unpublished or over.</p>
+        </div>
+        <div className="flex gap-2">
+          {canManage && (popup?.status === "active"
+            ? <ActionButton key="popup-off" action={eventPopupAction} fields={{ eventId: id, on: "0" }} label="Turn off" success="Pop-up turned off" />
+            : <ActionButton key="popup-on" action={eventPopupAction} fields={{ eventId: id, on: "1" }} label="Turn on" variant="default" success="Pop-up on — it shows while registration is open" />)}
+          {popup && <LinkButton href={`/admin/website/popups/${popup.id}`} variant="outline" size="sm">Customise & statistics</LinkButton>}
+        </div>
+      </div>
       <nav className="flex gap-1 overflow-x-auto border-b" aria-label="Event sections">
         {TABS.map(([k, l]) => (
           <Link key={k} href={`/admin/events/${id}?tab=${k}`} aria-current={tab === k ? "page" : undefined}

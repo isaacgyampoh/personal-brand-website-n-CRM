@@ -10,6 +10,7 @@ import { formatDateTime, formatInZone } from "@/lib/time";
 import { PageTitle, Panel, Stat, StatusBadge, LinkButton, Notice } from "@/components/dashboard/ui";
 import { RevenueChart } from "@/components/dashboard/charts";
 import { RangeFilter } from "@/components/dashboard/range-filter";
+import { popupStats, rate } from "@/features/popups/application/popups";
 
 export const metadata = { title: "Dashboard" };
 
@@ -20,7 +21,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const tz = s.business.timezone;
   const cur = s.business.currency;
   const range = resolveRange(sp, tz);
-  const d = await dashboardData(range, tz);
+  const [d, pops] = await Promise.all([dashboardData(range, tz), popupStats(range.from, range.to)]);
+  const pop = [...pops.values()].reduce((a, x) => ({ n: a.n + 1, imp: a.imp + x.impressions, clk: a.clk + x.clicks, conv: a.conv + x.conversions, rev: a.rev + x.revenueMinor }), { n: 0, imp: 0, clk: 0, conv: 0, rev: 0 });
   const money = (m: number) => formatMoney(m, cur);
   const conv = d.visitors.visitors ? (d.counts.paid_orders / d.visitors.visitors) * 100 : null;
   const int = await integrationStatuses();
@@ -74,6 +76,15 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         <Stat label="Paid registrations" value={d.counts.paid_regs} hint={`${d.counts.bookings} bookings made`} />
         <Stat label="Active students" value={d.counts.active_students} hint={`${d.counts.pending_orders} payment(s) pending`} />
       </div>
+
+      {pop.n > 0 && (
+        <Link href="/admin/website/popups" className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-xl border px-4 py-3 text-sm hover:bg-muted/40">
+          <span className="font-medium">Website pop-ups</span>
+          <span>{pop.imp} impressions</span><span>{pop.clk} clicks ({rate(pop.clk, pop.imp)})</span>
+          <span>{pop.conv} conversions</span><span>{money(pop.rev)} attributed revenue</span>
+          <span className="ml-auto text-xs text-muted-foreground">Details →</span>
+        </Link>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Panel title="Revenue" description="Net daily revenue (payments minus refunds)" className="xl:col-span-2">

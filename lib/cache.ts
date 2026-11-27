@@ -16,6 +16,7 @@ export const TAGS = {
   courses: "courses",
   products: "products",
   proof: "proof", // testimonials, case studies, media
+  popups: "popups",
 } as const;
 
 export const getPublicSettings = unstable_cache(() => loadSettings(), ["settings:v1"], {

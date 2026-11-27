@@ -15,7 +15,7 @@ export default async function WebsiteAdmin() {
   return (
     <div className="space-y-6">
       <PageTitle title="Website" description="Edit pages visually. Changes stay in draft until you publish — no redeploy needed."
-        actions={<><LinkButton href="/admin/website/design" variant="outline">Brand & design</LinkButton><LinkButton href="/admin/website/navigation" variant="outline">Navigation, banner & links</LinkButton><LinkButton href="/" variant="outline" target="_blank">View site ↗</LinkButton></>} />
+        actions={<><LinkButton href="/admin/website/popups" variant="outline">Pop-ups & campaigns</LinkButton><LinkButton href="/admin/website/design" variant="outline">Brand & design</LinkButton><LinkButton href="/admin/website/navigation" variant="outline">Navigation, banner & links</LinkButton><LinkButton href="/" variant="outline" target="_blank">View site ↗</LinkButton></>} />
       <Table head={["Page", "Address", "Status", "Last change", ""]}>
         {pages.map((p) => (
           <tr key={p.id} className="hover:bg-muted/40">

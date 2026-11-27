@@ -12,6 +12,9 @@ const attrSchema = z.object({
   utm_content: z.string().max(100).optional(),
   landing: z.string().max(300).optional(),
   at: z.string().max(40).optional(),
+  /** Website pop-up whose button the visitor clicked last (Studio → Pop-ups analytics). */
+  popupId: z.string().uuid().optional(),
+  popupAt: z.string().max(40).optional(),
 });
 export type Attribution = z.infer<typeof attrSchema>;
 

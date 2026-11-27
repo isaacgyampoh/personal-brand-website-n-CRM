@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/website/site-header";
 import { SiteFooter } from "@/components/website/site-footer";
 import { AnnouncementBar } from "@/components/website/announcement-bar";
 import { SiteEffects } from "@/components/website/site-effects";
+import { PopupHost } from "@/components/website/popup-host";
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getPublicSettings();
@@ -44,6 +45,7 @@ export default async function WebsiteLayout({ children }: { children: React.Reac
       <main id="main" className="flex-1">{children}</main>
       <SiteFooter settings={s} />
       <SiteEffects />
+      <PopupHost />
       {process.env.DEMO_BANNER === "true" && <div className="demo-flag" role="note">Demonstration content</div>}
     </div>
   );
