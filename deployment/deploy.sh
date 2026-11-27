@@ -1,27 +1,51 @@
 #!/usr/bin/env bash
 # Repeatable deploy on the Contabo host (run from the repo checkout on the server).
-#   RELEASE=$(git rev-parse --short HEAD) ENV_FILE=.env.production deployment/deploy.sh
-# Steps: backup DB -> build images -> start worker (runs migrations) -> start web -> health check.
-# On failure the previous images are still tagged; see ROLLBACK in docs/DEPLOYMENT.md.
+#   RELEASE=$(git rev-parse --short HEAD) deployment/deploy.sh
+# Steps: preflight → build images → start private PostgreSQL → pre-deploy backup →
+# worker (applies migrations) → web → health check. Previous images stay tagged for rollback.
+# Touches only this stack's containers, volumes and network; the shared proxy network is joined, not changed.
 set -euo pipefail
 cd "$(dirname "$0")"
 RELEASE="${RELEASE:-$(git rev-parse --short HEAD)}"
 ENV_FILE="${ENV_FILE:-.env.production}"
-[ -f "$ENV_FILE" ] || { echo "Missing $ENV_FILE (copy ../.env.example and fill it in)"; exit 1; }
-set -a; . "./$ENV_FILE"; set +a
-echo "== pre-deploy backup"
-BACKUP_PASSPHRASE="${BACKUP_PASSPHRASE:?set BACKUP_PASSPHRASE in $ENV_FILE}" ../scripts/backup.sh "${BACKUP_DIR:-/var/backups/brand-platform}"
+export RELEASE ENV_FILE
+
+echo "== preflight"
+for f in "$ENV_FILE" .env.backup secrets/postgres_admin_password secrets/app_db_password; do
+  [ -f "$f" ] || { echo "Missing deployment/$f — see docs/DEPLOYMENT.md (templates: .env.production.example, .env.backup.example)"; exit 1; }
+done
+for f in "$ENV_FILE" .env.backup secrets/postgres_admin_password secrets/app_db_password; do
+  [ "$(stat -c %a "$f" 2>/dev/null || stat -f %Lp "$f")" -le 600 ] || { echo "deployment/$f must be chmod 600"; exit 1; }
+done
+grep -q '^CREDENTIALS_MASTER_KEYS=[0-9]\+:.\+' "$ENV_FILE" || { echo "CREDENTIALS_MASTER_KEYS is not set in $ENV_FILE"; exit 1; }
+docker network inspect "${PROXY_NETWORK:-proxy}" >/dev/null || { echo "Shared proxy network '${PROXY_NETWORK:-proxy}' not found — set PROXY_NETWORK to the existing one"; exit 1; }
+
 echo "== build $RELEASE"
-RELEASE="$RELEASE" docker compose build
-echo "== start worker (applies migrations first)"
-RELEASE="$RELEASE" docker compose up -d worker
-sleep 10
-docker compose logs --tail 20 worker | grep -q "applying\|started" || true
-echo "== start web"
-RELEASE="$RELEASE" docker compose up -d web
-for i in $(seq 1 30); do
-  if docker compose exec -T web wget -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1; then echo "healthy: $RELEASE"; echo "$RELEASE" > .last-good-release; exit 0; fi
+docker compose build
+
+echo "== database"
+docker compose up -d postgres
+for i in $(seq 1 30); do docker compose exec -T postgres pg_isready -q && break; sleep 2; done
+
+if docker compose --profile tools run --rm -T tools sh -c 'psql "$DATABASE_URL" -Atc "select to_regclass($$public.users$$) is not null" | grep -q t'; then
+  echo "== pre-deploy backup"
+  docker compose --profile tools run --rm -T tools scripts/backup.sh /backups
+else
+  echo "== first deploy: empty database, no backup needed"
+fi
+
+echo "== worker (applies pending migrations first)"
+docker compose up -d worker
+sleep 8
+docker compose logs --tail 30 worker
+
+echo "== web"
+docker compose up -d web
+for i in $(seq 1 40); do
+  if docker compose exec -T web wget -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
+    echo "healthy: $RELEASE"; echo "$RELEASE" > .last-good-release; exit 0
+  fi
   sleep 3
 done
-echo "Health check failed for $RELEASE — roll back with: RELEASE=\$(cat .last-good-release) docker compose up -d"
+echo "Health check failed for $RELEASE — roll back with: RELEASE=\$(cat deployment/.last-good-release) docker compose -f deployment/docker-compose.yml up -d web worker"
 exit 1

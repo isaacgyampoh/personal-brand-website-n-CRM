@@ -127,7 +127,44 @@ export async function sendFollowUps(): Promise<number> {
       idempotencyKey: `event-feedback:${r.id}`,
     });
   }
-  return appts.length + regs.length;
+  return appts.length + regs.length + (await sendAbandonedCheckoutReminders());
+}
+
+/**
+ * One reminder for an unfinished paid checkout — ONLY to contacts who gave
+ * marketing consent, never if they later paid for the same item, never to
+ * suppressed addresses (marketing template), at most once per order.
+ */
+export async function sendAbandonedCheckoutReminders(): Promise<number> {
+  const rows = await db.query<{ id: string; email: string; name: string; item: string; item_type: string; slug: string | null }>(
+    `select o.id, o.email::text as email, coalesce(nullif(o.customer_name,''), c.full_name) as name, i.description as item, i.item_type,
+            case i.item_type
+              when 'event_ticket' then (select e.slug from ticket_types t join events e on e.id = t.event_id where t.id = i.item_id)
+              when 'course' then (select slug from courses where id = i.item_id)
+              when 'product' then (select slug from products where id = i.item_id)
+              when 'appointment' then (select s.slug from appointments a join services s on s.id = a.service_id where a.id = i.item_id)
+            end as slug
+       from orders o
+       join contacts c on c.id = o.contact_id and c.consent_marketing
+       join lateral (select * from order_items x where x.order_id = o.id order by x.total_minor desc limit 1) i on true
+      where o.status in ('pending','failed','expired') and o.total_minor > 0
+        and o.created_at < now() - interval '2 hours' and o.created_at > now() - interval '48 hours'
+        and not exists (select 1 from notifications n where n.idempotency_key = 'abandoned:' || o.id::text)
+        and not exists (
+          select 1 from orders p join order_items pi on pi.order_id = p.id
+           where p.email = o.email and p.status in ('paid','partially_refunded') and pi.item_id = i.item_id and p.created_at >= o.created_at)
+      limit 50`,
+  );
+  const path = { event_ticket: "/masterclasses/", course: "/academy/", product: "/shop/", appointment: "/book/" } as Record<string, string>;
+  for (const r of rows) {
+    await enqueueEmail({
+      to: r.email, template: "abandoned_checkout",
+      data: { name: r.name || "there", itemName: r.item, resumeUrl: `${env().APP_URL}${r.slug ? `${path[r.item_type]}${r.slug}` : ""}` },
+      idempotencyKey: `abandoned:${r.id}`,
+      related: { type: "order", id: r.id },
+    });
+  }
+  return rows.length;
 }
 
 /** Publishes due pages/articles, then asks the web app to drop cached public content. */

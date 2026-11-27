@@ -24,8 +24,19 @@ export async function verifyPassword(password: string, stored: string): Promise<
 }
 
 /** Basic strength policy: length matters most (NIST 800-63B). */
+/** Very common passwords and patterns (lower-cased, without digits/symbols) that are refused outright. */
+const COMMON = new Set([
+  "password", "passw0rd", "qwerty", "qwertyuiop", "letmein", "welcome", "iloveyou", "admin", "administrator", "football",
+  "monkey", "dragon", "sunshine", "princess", "abcdefghij", "abcdefgh", "trustno", "baseball", "superman", "starwars",
+  "changeme", "secret", "login", "master", "freedom", "whatever", "ghana", "accra", "jesus", "blessed",
+]);
+
 export function passwordProblems(password: string, email?: string): string[] {
   const problems: string[] = [];
+  const core = password.toLowerCase().replace(/[^a-z]/g, "");
+  if (/^\d+$/.test(password) || COMMON.has(core) || /^(0123456789|1234567890|9876543210)/.test(password)) {
+    problems.push("That password is too common. Use a few unrelated words or a password manager.");
+  }
   if (password.length < 10) problems.push("Use at least 10 characters.");
   if (password.length > 200) problems.push("Use at most 200 characters.");
   if (email && password.toLowerCase().includes(email.split("@")[0].toLowerCase())) {

@@ -130,3 +130,14 @@ describe("Hubtel adapter (request shape & status mapping, offline)", () => {
     await expect(gw.testConnection()).rejects.toThrow(/whitelist/);
   });
 });
+
+describe("password policy", () => {
+  it("refuses short, common and all-digit passwords but accepts passphrases", async () => {
+    const { passwordProblems } = await import("@/lib/security/passwords");
+    expect(passwordProblems("short")).not.toEqual([]);
+    expect(passwordProblems("Password123!")).not.toEqual([]);
+    expect(passwordProblems("12345678901")).not.toEqual([]);
+    expect(passwordProblems("ama.mensah2026", "ama.mensah@example.com")).not.toEqual([]);
+    expect(passwordProblems("REDACTED-LOCAL-TEST-PASSWORD")).toEqual([]);
+  });
+});

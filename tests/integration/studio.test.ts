@@ -66,3 +66,29 @@ describe("testimonial requests", () => {
     await expect(requestTestimonial(other, actor)).rejects.toThrow(/unsubscribed/);
   });
 });
+
+describe("abandoned checkout reminders", () => {
+  it("emails consented contacts once, never non-consented or later buyers", async () => {
+    const { sendAbandonedCheckoutReminders } = await import("@/features/automation/application/scheduled");
+    const mk = async (email: string, consent: boolean, status: string, hoursAgo: number, product: string) => {
+      const c = (await db.one<{ id: string }>("select id from contacts where email = $1", [email]))?.id
+        ?? (await db.one<{ id: string }>("insert into contacts (full_name, email, consent_marketing) values ($1, $2, $3) returning id", [email, email, consent]))!.id;
+      const o = (await db.one<{ id: string }>(
+        `insert into orders (reference, contact_id, email, customer_name, currency, subtotal_minor, total_minor, status, paid_at, created_at)
+         values ('ORD-' || upper(substr(md5(random()::text), 1, 10)), $1, $2, 'X', 'GHS', 1000, 1000, $3::text, case when $3::text = 'paid' then now() end, now() - make_interval(mins => $4)) returning id`,
+        [c, email, status, Math.round(hoursAgo * 60)]))!.id;
+      await db.query("insert into order_items (order_id, item_type, item_id, description, unit_price_minor, total_minor) values ($1, 'product', $2, 'Workbook', 1000, 1000)", [o, product]);
+      return o;
+    };
+    const p1 = "11111111-1111-1111-1111-111111111111";
+    await mk("yes@example.com", true, "expired", 5, p1);
+    await mk("no@example.com", false, "expired", 5, p1);
+    await mk("later@example.com", true, "expired", 6, p1);
+    await mk("later@example.com", true, "paid", 1, p1);
+    await mk("fresh@example.com", true, "pending", 0.5, p1);
+    expect(await sendAbandonedCheckoutReminders()).toBe(1);
+    expect(await sendAbandonedCheckoutReminders()).toBe(0);
+    const sent = await db.query<{ recipient: string }>("select recipient from notifications where template_key = 'abandoned_checkout'");
+    expect(sent.map((s) => s.recipient)).toEqual(["yes@example.com"]);
+  });
+});
