@@ -5,12 +5,13 @@ Everything is done in your browser at **/admin**. You never need to touch code o
 ## First time
 1. Open the one-time link you were sent, choose a password (10+ characters).
 2. Add Studio to an authenticator app on your phone and **keep the 10 recovery codes** somewhere safe.
-3. Open **Get started** (left menu). Work through the steps — each turns green by itself when it's really done.
+3. Open **Get started** (left menu). Your details, biography, photos, services and speaking engagements are already imported; each step shows exactly what is still missing and turns green by itself when it's done.
 
 ## Everyday tasks
 | I want to… | Go to |
 |---|---|
-| Change wording, photos or layout of a page | **Website** → open the page → edit → **Preview** → **Publish** |
+| Update your name, title, biography, expertise, recognition, contact details, social links, logo, photo, colours or business details | **Business profile** — saved instantly to the website |
+| Change wording, photos or layout of a page | **Website** → open the page → edit → **Preview** → **Publish** (every section has *Hide this section* if you want it off the site without deleting it) |
 | Change logo, colours, fonts, bio | **Website → Design** |
 | Upload or crop photos | **Media** (click the important part of a photo to set its focal point; *Create crop* makes a banner or square copy) |
 | Add or change a coaching service and price | **Services** (set hours under **Bookings → Availability**) |

@@ -132,7 +132,11 @@ test.describe("lead capture & registration flows", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const email = `${unique("book")}@example.com`;
     await page.goto("/book/demo-brand-clarity-session");
+    // Near month-end the current month may have no free day left: move on to the next month.
     const day = page.locator('[aria-label="Available dates"] button:not([disabled])').first();
+    for (let i = 0; i < 2 && !(await day.isVisible({ timeout: 8_000 }).catch(() => false)); i++) {
+      await page.getByRole("button", { name: /next month/i }).click();
+    }
     await expect(day).toBeVisible({ timeout: 15_000 });
     await day.click();
     const slot = page.locator('button[aria-pressed]').filter({ hasText: /\d{2}:\d{2}/ }).first();
