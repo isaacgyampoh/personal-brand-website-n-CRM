@@ -108,10 +108,11 @@ describe("Hubtel adapter (request shape & status mapping, offline)", () => {
       seen = { url, init };
       return new Response(JSON.stringify({ responseCode: "0000", data: { checkoutUrl: "https://pay.hubtel.com/abc", checkoutId: "abc" } }), { status: 200 });
     }) as unknown as typeof fetch);
-    const r = await gw.initialize({ reference: "ORD-1-P1", amountMinor: 12550, currency: "GHS", email: "a@b.co", callbackUrl: "https://x/cb", returnUrl: "https://x/r", cancelUrl: "https://x/c", description: "Masterclass", metadata: {} });
+    const r = await gw.initialize({ reference: "ORD-1-P1", amountMinor: 12550, currency: "GHS", email: "a@b.co", callbackUrl: "https://x/cb", returnUrl: "https://x/r", cancelUrl: "https://x/c", description: "Masterclass — Ama’s “Brand” £", metadata: {} });
     expect(r.authorizationUrl).toBe("https://pay.hubtel.com/abc");
     const body = JSON.parse(String(seen!.init.body));
-    expect(body).toMatchObject({ totalAmount: 125.5, clientReference: "ORD-1-P1", merchantAccountNumber: "2020", cancellationUrl: "https://x/c" });
+    expect(body).toMatchObject({ totalAmount: 125.5, clientReference: "ORD-1-P1", merchantAccountNumber: "2020", cancellationUrl: "https://x/c", payeeEmail: "a@b.co" });
+    expect(body.description).toMatch(/^[A-Za-z0-9 .,()-]+$/);
     expect((seen!.init.headers as Record<string, string>).authorization).toBe(`Basic ${Buffer.from("id:key").toString("base64")}`);
     await expect(gw.initialize({ reference: "R", amountMinor: 1, currency: "USD", email: "", callbackUrl: "", returnUrl: "", cancelUrl: "", description: "", metadata: {} })).rejects.toThrow(/GHS/);
   });

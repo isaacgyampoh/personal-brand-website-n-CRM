@@ -19,3 +19,11 @@
 		}
 	}
 }
+
+# STAGING: keep search engines out even if a link leaks (the app also sends noindex while
+# Website → SEO "indexable" is off). Remove this block for production.
+# {$STAGING_DOMAIN} {
+# 	header X-Robots-Tag "noindex, nofollow"
+# 	encode zstd gzip
+# 	reverse_proxy brand-platform-web-1:3000
+# }

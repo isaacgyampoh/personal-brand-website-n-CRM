@@ -12,11 +12,12 @@ import type { PaymentGateway, VerifiedTransaction, WebhookEvent } from "../domai
  *    are only a trigger: every payment is confirmed by the server-side
  *    Transaction Status Check (which requires the server IP to be whitelisted).
  *
- * Endpoint URLs are configurable in the Integration Centre. STATUS: UNVERIFIED —
- * Hubtel's documentation could not be fetched from this environment and no
- * merchant credentials were available; field names follow the published
- * reference and widely used client libraries. Verify with a small real
- * payment before activating.
+ * Endpoint URLs are configurable in the Integration Centre. Field names,
+ * limits and status values were checked against Hubtel's Online Checkout
+ * documentation (developers.hubtel.com, Nov 2026). STATUS: not yet verified
+ * with a real merchant account — keep disabled until a small real payment
+ * and status check succeed. Hubtel may additionally restrict callbacks to
+ * its documented callback IP; no refund API is documented for checkout.
  */
 export type HubtelConfig = { apiId: string; apiKey: string; merchantAccountNumber: string; initiateUrl: string; statusUrl: string };
 
@@ -53,16 +54,20 @@ export function createHubtelGateway(cfg: HubtelConfig, fetchImpl: typeof fetch =
     mode: "live",
     supportsRefunds: false,
 
-    async initialize({ reference, amountMinor, currency, callbackUrl, returnUrl, cancelUrl, description }) {
+    async initialize({ reference, amountMinor, currency, email, callbackUrl, returnUrl, cancelUrl, description, metadata }) {
       if (currency.toUpperCase() !== "GHS") throw new Error("Hubtel checkout supports GHS only.");
+      if (reference.length > 32) throw new Error("Hubtel client references are limited to 32 characters.");
       const body = await request(cfg.initiateUrl, {
         method: "POST",
         body: JSON.stringify({
           totalAmount: Number((amountMinor / 100).toFixed(2)),
-          description: description.slice(0, 120),
+          // Hubtel rejects special characters in the description.
+          description: (description.replace(/[^A-Za-z0-9 .,()-]/g, " ").replace(/\s+/g, " ").trim() || "Order").slice(0, 120),
           callbackUrl, returnUrl, cancellationUrl: cancelUrl,
           merchantAccountNumber: cfg.merchantAccountNumber,
           clientReference: reference,
+          ...(email ? { payeeEmail: email } : {}),
+          ...(typeof metadata.customer_name === "string" && metadata.customer_name ? { payeeName: metadata.customer_name } : {}),
         }),
       });
       const data = pick(body, "data") as Record<string, unknown> | undefined;
