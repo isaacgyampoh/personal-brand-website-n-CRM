@@ -114,7 +114,7 @@ export async function onboardingSteps(userId: string): Promise<OnboardingStep[]>
     {
       key: "publish", title: "12. Preview and publish your website", action: "Open Website",
       why: "Replace the demonstration text and photos with your own, then publish.", href: "/admin/website",
-      how: ["Open each page, replace placeholder wording and images, and use Preview on phone and desktop.", "Press Publish. Demonstration content must be removed before launch (we'll do this together)."],
+      how: ["Open each page, replace placeholder wording and images, and use Preview on phone and desktop.", "Paste your lawyer-reviewed Privacy Policy and Terms into those pages and publish them (until then visitors see a \"being finalised\" notice).", "Press Publish. Demonstration content must be removed before launch (we'll do this together)."],
       done: n.published_pages > 0 && n.demo === 0,
     },
   ];
