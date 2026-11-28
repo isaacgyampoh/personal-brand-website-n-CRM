@@ -51,7 +51,7 @@
 .pp-sheet .pp-card { pointer-events: auto; width: min(100%, 400px); max-height: min(80dvh, 640px); animation-name: pp-slide; }
 
 .pp-media { position: relative; margin: 0; background: color-mix(in oklab, var(--pp-fg) 6%, var(--pp-bg)); min-height: 100%; }
-.pp-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pp-media img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 0%; } /* flyers carry their headline at the top */
 .pp-flyer .pp-media img { height: auto; max-height: 62dvh; object-fit: contain; }
 .pp-sheet .pp-media img { aspect-ratio: 16 / 9; height: auto; }
 

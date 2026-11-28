@@ -91,7 +91,7 @@ export default async function EventPage({ params, searchParams }: Props) {
         </div>
         {e.coverUrl && (
           // eslint-disable-next-line @next/next/no-img-element
-          <div className="img-frame mt-14 aspect-[21/9]"><img src={e.coverUrl} alt="" fetchPriority="high" className="absolute inset-0 size-full object-cover" /></div>
+          <div className="img-frame mt-14 aspect-[4/3] sm:aspect-[21/9]"><img src={e.coverUrl} alt="" fetchPriority="high" className="absolute inset-0 size-full object-cover object-top" /></div>
         )}
       </header>
 
