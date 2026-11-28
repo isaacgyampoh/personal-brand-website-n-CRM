@@ -38,6 +38,8 @@ export function EventForm({ e, defaultTz }: { e?: EventRow & { cover_media_id: s
         <Field label="Registration opens" name="registrationOpensAt" type="datetime-local" defaultValue={toLocalInput(e?.registration_opens_at, tz)} hint="Blank = when published" />
         <Field label="Registration closes" name="registrationClosesAt" type="datetime-local" defaultValue={toLocalInput(e?.registration_closes_at, tz)} hint="Blank = at start time" />
         <Check label="Waiting list when full" name="waitlistEnabled" defaultChecked={e?.waitlist_enabled ?? true} />
+        <Field label="Register on another site (optional)" name="registrationUrl" type="url" defaultValue={e?.registration_url ?? ""} placeholder="https://selar.com/…" className="sm:col-span-3"
+          hint="While online payments aren't set up here, the Register buttons and the pop-up send people to this link (e.g. your Selar page). Leave blank to register on this website." />
         <Check label="Certificates for attendees" name="certificateEnabled" defaultChecked={e?.certificate_enabled ?? false} />
         <Check label="Ask for feedback afterwards" name="feedbackEnabled" defaultChecked={(e as { feedback_enabled?: boolean } | undefined)?.feedback_enabled ?? true} />
       </fieldset>

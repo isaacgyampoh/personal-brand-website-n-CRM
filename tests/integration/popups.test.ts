@@ -82,6 +82,15 @@ describe("website pop-ups — event lifecycle", () => {
     expect(await popupsForPath("/")).toHaveLength(0);
   });
 
+  it("sends visitors to the external registration page when one is set", async () => {
+    const e = await makeEvent({ price: 30000, capacity: null });
+    await db.query("update events set registration_url = 'https://selar.com/example' where id = $1", [e.id]);
+    await setEventPopup(e.id, true, actor);
+    const [p] = await popupsForPath("/");
+    expect(p.href).toBe("https://selar.com/example");
+    expect(p.event?.priceLabel).toMatch(/300/);
+  });
+
   it("shows a paid price and turning the switch off hides it", async () => {
     const e = await makeEvent({ price: 25000 });
     await setEventPopup(e.id, true, actor);

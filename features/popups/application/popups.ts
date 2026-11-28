@@ -73,7 +73,7 @@ export async function buildPopup(p: PopupRow, opts: { preview?: boolean; now?: D
       heading: p.heading || e.title,
       body: p.body || e.summary || e.subtitle,
       buttonText: state === "waitlist" ? "Join the waiting list" : p.button_text || (free ? "Reserve your free seat" : "Register now"),
-      href: `/masterclasses/${e.slug}#register`,
+      href: e.registration_url || `/masterclasses/${e.slug}#register`,
       excludePath: `/masterclasses/${e.slug}`,
       event: {
         slug: e.slug, startsAt: new Date(e.starts_at).toISOString(), timezone: e.timezone,

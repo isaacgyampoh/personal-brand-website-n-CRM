@@ -44,7 +44,7 @@ export type PublicEvent = {
   id: string; slug: string; title: string; subtitle: string; kind: string; format: "online" | "in_person" | "hybrid"; summary: string;
   description: unknown; coverUrl: string | null; flyerUrl: string | null; venueName: string; venueAddress: string; timezone: string;
   startsAt: string; endsAt: string; capacity: number | null; registrationOpensAt: string | null; registrationClosesAt: string | null;
-  waitlistEnabled: boolean; speakers: { name: string; title?: string; bio?: string; photoUrl?: string }[];
+  waitlistEnabled: boolean; registrationUrl: string | null; speakers: { name: string; title?: string; bio?: string; photoUrl?: string }[];
   agenda: { time: string; title: string; description?: string }[]; faqs: { q: string; a: string }[];
   status: "draft" | "published" | "cancelled" | "completed"; cancellationReason: string | null; seo: Record<string, string>;
   certificateEnabled: boolean; fromPriceMinor: number | null; currency: string; sessions: { title: string; startsAt: string; endsAt: string }[];
@@ -57,7 +57,7 @@ function mapEvent(e: Record<string, unknown>): PublicEvent {
     coverUrl: url(e.cover_key as string | null), flyerUrl: url(e.flyer_key as string | null), venueName: e.venue_name as string,
     venueAddress: e.venue_address as string, timezone: e.timezone as string, startsAt: iso(e.starts_at as Date)!, endsAt: iso(e.ends_at as Date)!,
     capacity: e.capacity as number | null, registrationOpensAt: iso(e.registration_opens_at as Date | null), registrationClosesAt: iso(e.registration_closes_at as Date | null),
-    waitlistEnabled: e.waitlist_enabled as boolean, speakers: (e.speakers as PublicEvent["speakers"]) ?? [], agenda: (e.agenda as PublicEvent["agenda"]) ?? [],
+    waitlistEnabled: e.waitlist_enabled as boolean, registrationUrl: (e.registration_url as string | null) ?? null, speakers: (e.speakers as PublicEvent["speakers"]) ?? [], agenda: (e.agenda as PublicEvent["agenda"]) ?? [],
     faqs: (e.faqs as PublicEvent["faqs"]) ?? [], status: e.status as PublicEvent["status"], cancellationReason: e.cancellation_reason as string | null,
     seo: (e.seo as Record<string, string>) ?? {}, certificateEnabled: e.certificate_enabled as boolean,
     fromPriceMinor: (e.from_price as number | null) ?? null, currency: (e.currency as string) ?? "GHS",

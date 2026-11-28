@@ -8,6 +8,7 @@ import { publicTickets } from "@/features/events/application/registration";
 import { registrationState } from "@/features/events/domain/rules";
 import { paymentsReady } from "@/features/payments/application/gateway";
 import { formatInZone } from "@/lib/time";
+import { formatMoney } from "@/lib/money";
 import { RichText } from "@/components/shared/rich-text";
 import { EventRegistration } from "@/components/website/event-registration";
 import { WaitlistForm } from "@/components/website/waitlist-form";
@@ -155,6 +156,12 @@ export default async function EventPage({ params, searchParams }: Props) {
               <p className="mt-4 text-[var(--muted-ink)]">Registration opens {e.registrationOpensAt ? formatInZone(new Date(e.registrationOpensAt), e.timezone, { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) : "soon"}.</p>
             ) : state === "closed" ? (
               <p className="mt-4 text-[var(--muted-ink)]">Registration has closed.</p>
+            ) : e.registrationUrl ? (
+              <>
+                {onSale[0] && <p className="mt-4 font-display text-3xl">{onSale[0].price_minor === 0 ? "Free" : formatMoney(onSale[0].price_minor, onSale[0].currency)}</p>}
+                <a href={e.registrationUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary mt-6 w-full">Secure your seat</a>
+                <p className="mt-3 text-xs text-[var(--muted-ink)]">Registration and payment open on a secure partner page.</p>
+              </>
             ) : soldOut || !onSale.length ? (
               <>
                 <p className="mt-4 text-[var(--muted-ink)]">{soldOut ? "This session is fully booked." : "Tickets are not on sale right now."}</p>

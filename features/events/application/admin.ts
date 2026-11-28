@@ -55,6 +55,8 @@ export const eventInput = z.object({
   faqs: z.string().max(10000).default(""),
   seoTitle: z.string().max(80).default(""),
   seoDescription: z.string().max(300).default(""),
+  /** Register on another site (e.g. a ticket shop) while online payments aren't set up here. */
+  registrationUrl: z.string().trim().max(500).default("").refine((v) => v === "" || /^https:\/\/[^\s]+$/.test(v), "Use a full https:// link"),
 });
 
 export async function saveEvent(id: string | null, raw: unknown, actorId: string): Promise<string> {
@@ -68,7 +70,7 @@ export async function saveEvent(id: string | null, raw: unknown, actorId: string
   const vals = [slug, i.title, i.subtitle, i.kind, i.format, i.summary, JSON.stringify(desc), i.coverMediaId || null, i.flyerMediaId || null,
     i.venueName, i.venueAddress, i.timezone, i.startsAt, i.endsAt, i.capacity === "" ? null : i.capacity, i.registrationOpensAt, i.registrationClosesAt,
     i.waitlistEnabled, JSON.stringify(speakers), JSON.stringify(agenda), JSON.stringify(faqs), i.certificateEnabled, i.feedbackEnabled,
-    JSON.stringify({ title: i.seoTitle, description: i.seoDescription })];
+    JSON.stringify({ title: i.seoTitle, description: i.seoDescription }), i.registrationUrl || null];
   try {
     if (id) {
       const prev = await db.one<{ starts_at: Date; status: string }>("select starts_at, status from events where id = $1", [id]);
@@ -78,14 +80,14 @@ export async function saveEvent(id: string | null, raw: unknown, actorId: string
       await db.query(
         `update events set slug=$1,title=$2,subtitle=$3,kind=$4,format=$5,summary=$6,description=$7,cover_media_id=$8,flyer_media_id=$9,venue_name=$10,
            venue_address=$11,timezone=$12,starts_at=$13,ends_at=$14,capacity=$15,registration_opens_at=$16,registration_closes_at=$17,waitlist_enabled=$18,
-           speakers=$19,agenda=$20,faqs=$21,certificate_enabled=$22,feedback_enabled=$23,seo=$24 where id=$25`,
+           speakers=$19,agenda=$20,faqs=$21,certificate_enabled=$22,feedback_enabled=$23,seo=$24,registration_url=$25 where id=$26`,
         [...vals, id],
       );
     } else {
       const r = await db.one<{ id: string }>(
         `insert into events (slug,title,subtitle,kind,format,summary,description,cover_media_id,flyer_media_id,venue_name,venue_address,timezone,starts_at,ends_at,
-           capacity,registration_opens_at,registration_closes_at,waitlist_enabled,speakers,agenda,faqs,certificate_enabled,feedback_enabled,seo)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24) returning id`,
+           capacity,registration_opens_at,registration_closes_at,waitlist_enabled,speakers,agenda,faqs,certificate_enabled,feedback_enabled,seo,registration_url)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25) returning id`,
         vals,
       );
       id = r!.id;

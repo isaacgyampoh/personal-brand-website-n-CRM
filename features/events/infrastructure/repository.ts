@@ -5,7 +5,7 @@ import { db, type Db } from "@/lib/database/pool";
 export const PUBLIC_EVENT_COLUMNS = `e.id, e.slug, e.title, e.subtitle, e.kind, e.format, e.summary, e.description, e.cover_media_id,
   e.flyer_media_id, e.venue_name, e.venue_address, e.timezone, e.starts_at, e.ends_at, e.capacity, e.registration_opens_at,
   e.registration_closes_at, e.waitlist_enabled, e.speakers, e.agenda, e.faqs, e.certificate_enabled, e.status,
-  e.cancellation_reason, e.seo, e.published_at, e.is_demo`;
+  e.cancellation_reason, e.seo, e.published_at, e.is_demo, e.registration_url`;
 
 export type EventRow = {
   id: string; slug: string; title: string; subtitle: string; kind: string; format: "online" | "in_person" | "hybrid";
@@ -16,7 +16,7 @@ export type EventRow = {
   agenda: { time: string; title: string; description?: string }[];
   faqs: { q: string; a: string }[];
   certificate_enabled: boolean; status: "draft" | "published" | "cancelled" | "completed"; cancellation_reason: string | null;
-  seo: Record<string, string>; published_at: Date | null; is_demo: boolean;
+  seo: Record<string, string>; published_at: Date | null; is_demo: boolean; registration_url: string | null;
   cover_url?: string | null;
 };
 
