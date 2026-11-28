@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, LineChart, Users, Kanban, CheckSquare, Handshake, CalendarDays, Briefcase, Presentation, GraduationCap, ShoppingBag, Wallet, Globe, PenLine, Images, Quote, Megaphone, ClipboardList, Sparkles, Settings, Activity, Circle, Menu, X, Plug, ShieldCheck, Search, Bell, Receipt, Mic } from "lucide-react";
+import { LayoutDashboard, LineChart, Users, Kanban, CheckSquare, Handshake, CalendarDays, Briefcase, Presentation, GraduationCap, ShoppingBag, Wallet, Globe, PenLine, Images, Quote, Megaphone, ClipboardList, Sparkles, Settings, Activity, Circle, Menu, X, Plug, ShieldCheck, Search, Bell, Receipt, Mic, LifeBuoy } from "lucide-react";
 
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = { LayoutDashboard, LineChart, Users, Kanban, CheckSquare, Handshake, CalendarDays, Briefcase, Presentation, GraduationCap, ShoppingBag, Wallet, Globe, PenLine, Images, Quote, Megaphone, ClipboardList, Sparkles, Settings, Activity, Circle, Menu, X, Plug, ShieldCheck, Search, Bell, Receipt, Mic };
+const ICONS: Record<string, React.ComponentType<{ className?: string }>> = { LayoutDashboard, LineChart, Users, Kanban, CheckSquare, Handshake, CalendarDays, Briefcase, Presentation, GraduationCap, ShoppingBag, Wallet, Globe, PenLine, Images, Quote, Megaphone, ClipboardList, Sparkles, Settings, Activity, Circle, Menu, X, Plug, ShieldCheck, Search, Bell, Receipt, Mic, LifeBuoy };
 import type { NavGroup } from "./nav";
 import { cn } from "@/lib/utils";
 

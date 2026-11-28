@@ -12,7 +12,7 @@ const area = (label: string): Field => ({ type: "textarea", label });
 const num = (label: string, min = 1, max = 12): Field => ({ type: "number", label, min, max });
 const toggle = (label: string): Field => ({ type: "radio", label, options: [{ label: "Yes", value: true }, { label: "No", value: false }] });
 const select = (label: string, opts: [string, string][]): Field => ({ type: "select", label, options: opts.map(([value, l]) => ({ value, label: l })) });
-const tone: Field = select("Background", [["paper", "Paper"], ["surface", "White"], ["ink", "Dark"], ["accent", "Accent colour"]]);
+const tone: Field = select("Section background", [["paper", "Page background (white)"], ["surface", "Soft tint (blush)"], ["ink", "Deep feature (dark wine)"], ["accent", "Brand colour (wine)"]]);
 const cta = (label: string): Field => ({ type: "object", label, objectFields: { label: text("Button text"), href: text("Link (e.g. /book or https://…)") } });
 
 function ImageFieldInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {

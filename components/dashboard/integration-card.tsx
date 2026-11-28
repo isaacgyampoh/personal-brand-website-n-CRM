@@ -77,12 +77,13 @@ const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-GB",
 function FieldInput({ f, mode, v }: { f: FieldDef; mode: "test" | "live"; v: CardView }) {
   const key = storedKey(f, mode);
   const label = `${f.label}${f.perMode ? ` (${mode})` : ""}${f.required ? "" : " — optional"}`;
+  const placeholder = f.perMode && mode === "live" ? f.placeholder?.replace("_test_", "_live_") : f.placeholder;
   const current = v.settings[key] ?? "";
   if (f.type === "secret") {
     const hint = v.secretHints[key];
     return (
       <div>
-        <Field label={label} name={`f:${key}`} type="password" autoComplete="new-password" placeholder={hint ? `Saved (${hint}) — leave blank to keep` : f.placeholder} hint={f.help} />
+        <Field label={label} name={`f:${key}`} type="password" autoComplete="new-password" placeholder={hint ? `Saved (${hint}) — leave blank to keep` : placeholder} hint={f.help} />
         {hint && (
           <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" name="clear" value={key} className="size-3.5" /> Remove saved value</label>
         )}
@@ -118,9 +119,17 @@ function FieldInput({ f, mode, v }: { f: FieldDef; mode: "test" | "live"; v: Car
     );
   }
   return (
-    <Field label={label} name={`f:${key}`} defaultValue={current} placeholder={f.placeholder} hint={f.help}
+    <Field label={label} name={`f:${key}`} defaultValue={current} placeholder={placeholder} hint={f.help}
       type={f.type === "email" ? "email" : f.type === "url" ? "url" : f.type === "number" ? "number" : "text"} inputMode={f.type === "number" ? "numeric" : undefined} />
   );
+}
+
+/** Turns https:// addresses inside setup steps into links that open in a new tab. */
+function Linkified({ text }: { text: string }) {
+  const parts = text.split(/(https:\/\/[^\s]+?)(?=[\s,)]|$)/g);
+  return <>{parts.map((p, i) => /^https:\/\//.test(p)
+    ? <a key={i} href={p} target="_blank" rel="noreferrer noopener" className="font-medium text-foreground underline">{p.replace(/^https:\/\//, "")}</a>
+    : <span key={i}>{p}</span>)}</>;
 }
 
 /** For email, the generic SMTP form is tucked away: Gmail quick setup covers the usual case. */
@@ -160,9 +169,9 @@ export function IntegrationCard({ v, canGoLive }: { v: CardView; canGoLive: bool
         <div id={`body-${d.provider}`} className="space-y-5 border-t p-4 sm:p-5">
           {d.provider === "smtp" && <GmailSetup v={v} />}
           <SmtpAdvanced smtp={d.provider === "smtp"}>
-          <details className="rounded-lg bg-muted/50 p-3 text-sm">
+          <details className="rounded-lg bg-muted/50 p-3 text-sm" open={v.status !== "connected"}>
             <summary className="cursor-pointer font-medium">Setup instructions</summary>
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">{d.steps.map((s) => <li key={s}>{s}</li>)}</ol>
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">{d.steps.map((s) => <li key={s}><Linkified text={s} /></li>)}</ol>
             {d.docs && <p className="mt-2"><a href={d.docs} target="_blank" rel="noreferrer noopener" className="underline">Provider documentation</a></p>}
           </details>
 
