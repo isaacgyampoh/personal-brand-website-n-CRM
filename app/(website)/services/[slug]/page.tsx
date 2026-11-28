@@ -20,7 +20,7 @@ export default async function ServicePage({ params }: Props) {
   const s = await load((await params).slug);
   if (!s) notFound();
   const action =
-    s.bookingMode === "instant" ? <Link href={`/book/${s.slug}`} className="btn btn-primary w-full">Choose a time <span className="arrow" aria-hidden>→</span></Link>
+    s.bookingMode === "instant" ? <Link href={`/book/${s.slug}`} className="btn btn-primary w-full">Choose a time</Link>
     : s.bookingMode === "enquiry" ? <Link href={`/contact?service=${s.slug}`} className="btn btn-primary w-full">Enquire</Link>
     : null;
   const jsonLd = {

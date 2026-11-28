@@ -1,3 +1,4 @@
+import { themeCss as themeCssFor } from "@/lib/theme";
 import "../../globals.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -18,8 +19,7 @@ export default async function StudioPage({ params }: { params: Promise<{ id: str
   const page = await pageById(id);
   if (!page) notFound();
   const s = await loadSettings();
-  const pair = FONT_PAIRS[s.theme.fontPair];
-  const themeCss = `.site{--ink:${s.theme.ink};--paper:${s.theme.paper};--surface:${s.theme.surface};--brand-accent:${s.theme.accent};--brand-accent-ink:${s.theme.accentInk};--muted-ink:${s.theme.muted};--site-display:${pair.display};--site-body:${pair.body};--display-scale:${pair.displayScale};--site-radius:${s.theme.corners === "soft" ? "6px" : "0px"}}`;
+  const themeCss = themeCssFor(s.theme, ".site");
   return (
     <>
       <PageStudio

@@ -51,7 +51,7 @@ export function SiteHeader(props: { brandName: string; logoUrl: string; logoText
   return (
     <header
       className={`sticky top-0 z-40 transition-[background-color,box-shadow,backdrop-filter] duration-300 ${
-        scrolled ? "bg-[color-mix(in_oklab,var(--paper)_92%,transparent)] shadow-[0_1px_0_var(--line)] backdrop-blur-md" : "bg-transparent"
+        scrolled ? "bg-[color-mix(in_oklab,var(--paper)_94%,transparent)] shadow-[0_8px_30px_-20px_rgb(0_0_0/.35)] backdrop-blur-md" : "bg-[var(--paper)] shadow-[0_1px_0_var(--line)]"
       }`}
     >
       <div className="site-container flex h-[72px] items-center justify-between gap-4 md:h-[84px] md:gap-6">
@@ -70,7 +70,7 @@ export function SiteHeader(props: { brandName: string; logoUrl: string; logoText
               <li key={l.href}>
                 <Link
                   href={l.href}
-                  className={`relative py-2 text-[0.78rem] font-semibold uppercase tracking-[0.16em] transition-colors hover:text-[var(--brand-accent)] ${isActive(l.href) ? "text-[var(--brand-accent)]" : ""}`}
+                  className={`relative py-2 text-[0.76rem] font-semibold uppercase tracking-[0.16em] transition-colors hover:text-[var(--brand-accent)] after:absolute after:inset-x-0 after:-bottom-0.5 after:h-[2px] after:bg-[var(--brand-accent)] after:transition-transform ${isActive(l.href) ? "text-[var(--brand-accent)] after:scale-x-100" : "after:scale-x-0 hover:after:scale-x-100"}`}
                   aria-current={isActive(l.href) ? "page" : undefined}
                 >
                   {l.label}
@@ -118,7 +118,6 @@ export function SiteHeader(props: { brandName: string; logoUrl: string; logoText
               <li key={l.href}>
                 <Link href={l.href} className="flex min-h-16 items-center justify-between py-4 font-display text-[2rem] leading-none">
                   {l.label}
-                  <span aria-hidden className="text-base text-[var(--muted-ink)]">→</span>
                 </Link>
               </li>
             ))}

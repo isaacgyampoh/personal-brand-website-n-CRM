@@ -81,7 +81,8 @@ export function buildPuckConfig(rootClassName: string, themeCss: string): Config
         variant: select("Layout", [["editorial", "Editorial split (portrait)"], ["statement", "Typographic statement"], ["portrait-full", "Full-bleed portrait"]]),
         eyebrow: text("Eyebrow"), headline: area("Headline (wrap words in *asterisks* for italics)"), emphasis: text("Highlighted ending (italic)"),
         body: area("Introduction"), primaryCta: cta("Primary button"), secondaryCta: cta("Secondary link"),
-        imageUrl: image("Portrait / image"), imageAlt: text("Image description (alt text)"), videoUrl: text("Or video URL (YouTube/Vimeo)"), tone,
+        imageUrl: image("Portrait / image"), imageAlt: text("Image description (alt text)"), videoUrl: text("Or video URL (YouTube/Vimeo)"),
+        badgeTitle: text("Credential on the photo (only verified facts)"), badgeText: text("Credential source / year"), tone,
       }, (p) => <S.Hero {...(p as object as Parameters<typeof S.Hero>[0])} />),
       Introduction: C("Introduction", "Personal introduction", {
         eyebrow: text("Eyebrow"), heading: area("Heading"), body: area("Story (blank line = new paragraph)"), signature: text("Signature"),

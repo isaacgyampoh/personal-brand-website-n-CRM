@@ -1,15 +1,14 @@
+import { themeCss as themeCssFor } from "@/lib/theme";
 import "../site.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublicSettings } from "@/lib/cache";
-import { FONT_PAIRS } from "@/lib/fonts";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const s = await getPublicSettings();
-  const pair = FONT_PAIRS[s.theme.fontPair];
-  const css = `:root{--ink:${s.theme.ink};--paper:${s.theme.paper};--surface:${s.theme.surface};--brand-accent:${s.theme.accent};--brand-accent-ink:${s.theme.accentInk};--muted-ink:${s.theme.muted};--site-display:${pair.display};--site-body:${pair.body}}`;
+  const css = themeCssFor(s.theme, ":root");
   return (
     <div className="site grid min-h-dvh lg:grid-cols-2">
       <style dangerouslySetInnerHTML={{ __html: css }} />

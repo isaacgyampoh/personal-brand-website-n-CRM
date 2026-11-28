@@ -27,7 +27,7 @@ export default async function CaseStudiesPage() {
                   {c.clientName && <p className="eyebrow">{c.clientName}</p>}
                   <h2 className="display-md mt-4 transition-colors group-hover:text-[var(--brand-accent)]">{c.title}</h2>
                   <p className="mt-4 text-[var(--muted-ink)]">{c.summary}</p>
-                  <span className="btn btn-link mt-6 !p-0">Read the story <span className="arrow" aria-hidden>→</span></span>
+                  <span className="btn btn-link mt-6 !p-0">Read the story</span>
                 </div>
               </Link>
             </li>

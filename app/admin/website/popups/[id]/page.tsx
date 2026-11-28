@@ -4,7 +4,7 @@ import { db } from "@/lib/database/pool";
 import { loadSettings } from "@/features/settings/application/settings";
 import { getPopup, popupStats, rate } from "@/features/popups/application/popups";
 import { deletePopupAction, popupStatusAction } from "@/features/popups/presentation/actions";
-import { FONT_PAIRS } from "@/lib/fonts";
+import { themeVars } from "@/lib/theme";
 import { formatInZone, toLocalInput } from "@/lib/time";
 import { formatMoney } from "@/lib/money";
 import { PageTitle, Panel, Stat, StatusBadge, Notice } from "@/components/dashboard/ui";
@@ -50,11 +50,7 @@ export default async function PopupPage({ params, searchParams }: { params: Prom
     priority: "0", startsAt: "", endsAt: "", ...d,
   } as PopupFormValues;
 
-  const pair = FONT_PAIRS[s.theme.fontPair];
-  const theme = {
-    "--ink": s.theme.ink, "--paper": s.theme.paper, "--brand-accent": s.theme.accent, "--brand-accent-ink": s.theme.accentInk,
-    "--site-display": pair.display, "--site-body": pair.body, "--site-radius": s.theme.corners === "soft" ? "6px" : "0px",
-  } as React.CSSProperties;
+  const theme = themeVars(s.theme) as React.CSSProperties;
 
   const stats = row ? (await popupStats(new Date(Date.now() - 30 * 86400_000), new Date(Date.now() + 60_000), [row.id])).get(row.id) : null;
   const expired = row?.ends_at && row.ends_at <= new Date();

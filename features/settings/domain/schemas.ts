@@ -30,13 +30,18 @@ export const settingSchemas = {
     achievements: z.string().trim().max(4000).default(""),
   }),
   theme: z.object({
-    ink: hex.default("#1b1916"),
-    paper: hex.default("#f6f1ea"),
-    surface: hex.default("#ffffff"),
-    accent: hex.default("#8a5a3c"),
+    ink: hex.default("#1f1418"),
+    paper: hex.default("#ffffff"),
+    /** Alternate section background (soft tint). */
+    surface: hex.default("#f8eef0"),
+    accent: hex.default("#8c2350"),
     accentInk: hex.default("#ffffff"),
-    muted: hex.default("#6f675e"),
-    fontPair: z.enum(["editorial", "classic", "modern"]).default("editorial"),
+    muted: hex.default("#6b5a60"),
+    /** Background of dark feature sections, the hero and the footer. */
+    deep: hex.default("#3a1526"),
+    /** Small details on dark sections (labels, numbers). */
+    highlight: hex.default("#d4a66a"),
+    fontPair: z.enum(["signature", "editorial", "classic", "modern"]).default("signature"),
     corners: z.enum(["square", "soft"]).default("square"),
   }),
   contact: z.object({

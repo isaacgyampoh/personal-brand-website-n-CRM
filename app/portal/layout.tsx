@@ -1,9 +1,9 @@
+import { themeCss as themeCssFor } from "@/lib/theme";
 import "../site.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublicSettings } from "@/lib/cache";
 import { requireUser } from "@/lib/auth/session";
-import { FONT_PAIRS } from "@/lib/fonts";
 import { attachVerifiedUser } from "@/features/crm/application/contacts";
 import { PortalNav } from "@/components/portal/portal-nav";
 import { EmailLink, EmailText } from "@/components/shared/email-text";
@@ -15,8 +15,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const user = await requireUser("/portal");
   await attachVerifiedUser(user.id);
   const s = await getPublicSettings();
-  const pair = FONT_PAIRS[s.theme.fontPair];
-  const css = `:root{--ink:${s.theme.ink};--paper:${s.theme.paper};--surface:${s.theme.surface};--brand-accent:${s.theme.accent};--brand-accent-ink:${s.theme.accentInk};--muted-ink:${s.theme.muted};--site-display:${pair.display};--site-body:${pair.body};--site-radius:${s.theme.corners === "soft" ? "6px" : "0px"}}`;
+  const css = themeCssFor(s.theme, ":root");
   return (
     <div className="site min-h-dvh">
       <style dangerouslySetInnerHTML={{ __html: css }} />

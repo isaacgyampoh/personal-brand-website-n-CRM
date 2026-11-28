@@ -17,7 +17,7 @@ export function Cta({ cta, variant = "primary" }: { cta?: { label: string; href:
   const external = cta.href.startsWith("http");
   return (
     <Link href={cta.href} className={`btn btn-${variant}`} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
-      {cta.label} <span className="arrow" aria-hidden>→</span>
+      {cta.label}
     </Link>
   );
 }
@@ -71,9 +71,9 @@ export function Hero(p: BlockProps<"Hero">) {
     </h1>
   );
   const actions = (p.primaryCta.label || p.secondaryCta.label) && (
-    <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+    <div className="mt-9 grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
       <Cta cta={p.primaryCta} variant="primary" />
-      <Cta cta={p.secondaryCta} variant="link" />
+      <Cta cta={p.secondaryCta} variant="outline" />
     </div>
   );
 
@@ -82,7 +82,7 @@ export function Hero(p: BlockProps<"Hero">) {
       <section className={`${toneClass(p.tone)} relative overflow-hidden`}>
         <div className="site-container pb-20 pt-16 md:pb-32 md:pt-28">
           <div className="max-w-5xl">
-            {p.eyebrow && <p className="eyebrow eyebrow-rule mb-8">{p.eyebrow}</p>}
+            {p.eyebrow && <p className="eyebrow mb-8">{p.eyebrow}</p>}
             {headline}
             <div className="mt-10 grid gap-10 md:grid-cols-12">
               {p.body && <p className="lede md:col-span-6">{p.body}</p>}
@@ -101,7 +101,7 @@ export function Hero(p: BlockProps<"Hero">) {
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/75 via-black/30 to-black/10" aria-hidden />
         <div className="site-container flex min-h-[88svh] flex-col justify-end pb-16 pt-32 md:pb-24">
           <div className="max-w-3xl [--muted-ink:rgba(255,255,255,.8)] [&_.btn-primary]:bg-[var(--paper)] [&_.btn-primary]:text-[var(--ink)]">
-            {p.eyebrow && <p className="eyebrow eyebrow-rule mb-6">{p.eyebrow}</p>}
+            {p.eyebrow && <p className="eyebrow mb-6">{p.eyebrow}</p>}
             {headline}
             {p.body && <p className="mt-8 max-w-xl text-lg leading-relaxed opacity-90">{p.body}</p>}
             {actions}
@@ -111,28 +111,35 @@ export function Hero(p: BlockProps<"Hero">) {
     );
   }
 
-  // Editorial split (default)
+  // Editorial split (default). On a dark tone it becomes a full-height feature opening.
+  const deep = p.tone === "ink";
+  const badge = p.badgeTitle ? (
+    <div className="hero-badge">
+      <strong>{p.badgeTitle}</strong>
+      {p.badgeText && <span>{p.badgeText}</span>}
+    </div>
+  ) : null;
   return (
-    <section className={toneClass(p.tone)}>
-      <div className="site-container grid items-center gap-12 pb-16 pt-8 md:pb-24 md:pt-12 lg:grid-cols-12 lg:gap-8">
-        <div className="lg:col-span-6 lg:pr-6">
-          {p.eyebrow && <p className="eyebrow eyebrow-rule mb-8">{p.eyebrow}</p>}
+    <section className={`${toneClass(p.tone)} relative overflow-hidden`}>
+      <div className={`site-container grid items-center gap-9 lg:grid-cols-12 lg:gap-10 ${deep ? "pb-14 pt-6 md:py-20 lg:min-h-[calc(100svh-84px)] lg:py-16" : "pb-16 pt-6 md:pb-24 md:pt-12"}`}>
+        <div className="lg:col-span-6">
+          {p.eyebrow && <p className="eyebrow mb-6 md:mb-8">{p.eyebrow}</p>}
           {headline}
-          {p.body && <p className="lede mt-8 max-w-lg">{p.body}</p>}
+          {p.body && <p className="lede mt-7 max-w-xl md:mt-8">{p.body}</p>}
           {actions}
         </div>
-        <div className="relative lg:col-span-5 lg:col-start-8">
+        <div className="relative order-first lg:order-none lg:col-span-5 lg:col-start-8">
           {embed ? (
             <div className="img-frame aspect-video">
               <iframe src={embed} title={p.imageAlt || "Introduction video"} className="absolute inset-0 size-full" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" />
             </div>
           ) : (
-            <>
-              <div className="img-frame aspect-[4/5]">
-                <Img src={p.imageUrl} alt={p.imageAlt} priority srcSet={(p as { imageSrcSet?: string }).imageSrcSet} sizes="(min-width: 1024px) 40vw, 90vw" className="absolute inset-0 size-full object-cover" />
+            <div className="relative mx-auto max-w-[30rem] lg:max-w-none">
+              <div className="img-frame aspect-[5/4] shadow-[0_40px_80px_-40px_rgb(0_0_0/.55)] sm:aspect-[4/5]">
+                <Img src={p.imageUrl} alt={p.imageAlt} priority srcSet={(p as { imageSrcSet?: string }).imageSrcSet} sizes="(min-width: 1024px) 40vw, 90vw" className="absolute inset-0 size-full object-cover object-[50%_20%]" />
               </div>
-              <div aria-hidden className="absolute -bottom-6 -left-6 hidden h-40 w-40 border border-[var(--brand-accent)] lg:block" />
-            </>
+              {badge}
+            </div>
           )}
         </div>
       </div>
@@ -225,11 +232,11 @@ export function Stats(p: BlockProps<"Stats">) {
     <section className={`${toneClass(p.tone)} section-y-sm`}>
       <div className="site-container">
         <SectionHead eyebrow={p.eyebrow} heading={p.heading} align="left" />
-        <dl className="grid grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-4">
+        <dl className={`grid grid-cols-2 gap-x-6 gap-y-8 md:gap-x-8 md:gap-y-10 [&>div:last-child:nth-child(odd)]:col-span-2 ${items.length === 3 ? "lg:grid-cols-3 lg:[&>div:last-child:nth-child(odd)]:col-span-1" : "lg:grid-cols-4"}`}>
           {items.map((i, n) => (
-            <div key={n} className="reveal border-t border-[var(--line)] pt-6">
+            <div key={n} className="reveal border-t-2 border-[var(--brand-accent)] pt-6 [.tone-ink_&]:border-[var(--highlight)]">
               <dt className="sr-only">{i.label}</dt>
-              <dd className="font-display text-[clamp(2.8rem,6vw,4.6rem)] leading-none tracking-[-0.03em]">{i.value}</dd>
+              <dd className="font-display text-[clamp(2.3rem,5.4vw,4.2rem)] leading-none tracking-[-0.03em] text-[var(--brand-accent)] [.tone-ink_&]:text-[var(--highlight)]">{i.value}</dd>
               <dd className="mt-4 text-sm font-semibold">{i.label}</dd>
               {i.note && <dd className="mt-1 text-sm text-[var(--muted-ink)]">{i.note}</dd>}
             </div>
@@ -246,11 +253,17 @@ export function Logos(p: BlockProps<"Logos">) {
   return (
     <section className={`${toneClass(p.tone)} section-y-sm`}>
       <div className="site-container">
-        {p.heading && <p className="eyebrow mb-10 text-center">{p.heading}</p>}
-        <ul className="flex flex-wrap items-center justify-center gap-x-14 gap-y-8">
+        {p.heading && <p className="eyebrow mb-8 text-center md:mb-10">{p.heading}</p>}
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8">
           {items.map((i, n) => {
-            const inner = i.logoUrl ? <Img src={i.logoUrl} alt={i.name} className="h-8 w-auto opacity-70 grayscale transition hover:opacity-100 hover:grayscale-0 md:h-10" /> : <span className="font-display text-2xl opacity-70">{i.name}</span>;
-            return <li key={n}>{i.href ? <a href={i.href} target="_blank" rel="noopener noreferrer">{inner}</a> : inner}</li>;
+            const inner = i.logoUrl
+              ? <Img src={i.logoUrl} alt={i.name} className="max-h-12 w-auto max-w-[80%] object-contain md:max-h-14" />
+              : <span className="px-2 text-center font-display text-lg">{i.name}</span>;
+            return (
+              <li key={n} className="flex aspect-[3/2] items-center justify-center rounded-[calc(var(--site-radius)*2)] border border-[var(--line)] bg-white transition hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-18px_rgb(0_0_0/.35)]">
+                {i.href ? <a href={i.href} target="_blank" rel="noopener noreferrer" className="flex size-full items-center justify-center" aria-label={i.name}>{inner}</a> : inner}
+              </li>
+            );
           })}
         </ul>
       </div>
@@ -310,14 +323,17 @@ export function Gallery(p: BlockProps<"Gallery">) {
     <section className={`${toneClass(p.tone)} section-y`}>
       <div className="site-container">
         {p.heading && <h2 className="display-md reveal mb-12"><Emphasis text={p.heading} /></h2>}
-        <div className={p.layout === "row" ? "flex snap-x gap-6 overflow-x-auto pb-4" : "columns-1 gap-6 sm:columns-2 lg:columns-3"}>
+        {/* Small sets (2 or 4 photos) use an even grid so no photo sits alone on a row. */}
+        {(() => { const even = p.layout === "row" || images.length === 2 || images.length === 4; return (
+        <div className={even ? `grid gap-4 sm:grid-cols-2 md:gap-6 ${images.length === 4 ? "lg:grid-cols-4" : images.length === 2 ? "" : "lg:grid-cols-3"}` : "columns-1 gap-4 sm:columns-2 md:gap-6 lg:columns-3"}>
           {images.map((i, n) => (
-            <figure key={n} className={`reveal ${p.layout === "row" ? "w-[78vw] shrink-0 snap-start sm:w-[420px]" : "mb-6 break-inside-avoid"}`}>
-              <div className="img-frame"><Img src={i.url} alt={i.alt} className="w-full" /></div>
+            <figure key={n} className={`reveal ${even ? "" : "mb-4 break-inside-avoid md:mb-6"}`}>
+              <div className={`img-frame ${even ? "aspect-[4/5]" : ""}`}><Img src={i.url} alt={i.alt} className={even ? "absolute inset-0 size-full object-cover" : "w-full"} /></div>
               {i.caption && <figcaption className="mt-3 text-sm text-[var(--muted-ink)]">{i.caption}</figcaption>}
             </figure>
           ))}
         </div>
+        ); })()}
       </div>
     </section>
   );

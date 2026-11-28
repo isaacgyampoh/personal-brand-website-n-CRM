@@ -29,16 +29,16 @@ function Cover({ src, alt, label, ratio = "aspect-[4/5]" }: { src: string | null
 
 export function ServiceCard({ s, index }: { s: PublicService; index?: number }) {
   return (
-    <Link href={`/services/${s.slug}`} className="group flex h-full flex-col border-t border-[var(--line)] pt-6">
+    <Link href={`/services/${s.slug}`} className="card-frame group flex h-full flex-col p-7 transition duration-300 hover:-translate-y-1 hover:border-[var(--brand-accent)] hover:shadow-[0_24px_50px_-30px_rgb(0_0_0/.35)] md:p-8">
       <div className="flex items-baseline justify-between gap-4">
-        {index !== undefined && <span className="font-display text-lg text-[var(--muted-ink)]">{String(index + 1).padStart(2, "0")}</span>}
-        <span className="eyebrow">{s.durationMinutes} min · {s.locationType === "online" ? "Online" : s.locationType === "phone" ? "Phone" : "In person"}</span>
+        {index !== undefined && <span className="font-display text-2xl text-[var(--brand-accent)]">{String(index + 1).padStart(2, "0")}</span>}
+        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted-ink)]">{s.locationType === "online" ? "Online" : s.locationType === "phone" ? "Phone" : "In person"}</span>
       </div>
-      <h3 className="display-sm mt-6 transition-colors group-hover:text-[var(--brand-accent)]">{s.name}</h3>
+      <h3 className="display-sm mt-6">{s.name}</h3>
       <p className="mt-3 flex-1 text-[0.98rem] leading-relaxed text-[var(--muted-ink)]">{s.summary}</p>
-      <div className="mt-6 flex items-center justify-between">
+      <div className="mt-7 flex items-center justify-between gap-4 border-t border-[var(--line)] pt-5">
         <span className="text-sm font-semibold">{priceLabel(s.priceMinor, s.currency, s.priceDisplay)}</span>
-        <span className="btn-link btn !p-0 !text-[0.72rem]">Details <span className="arrow" aria-hidden>→</span></span>
+        <span className="text-sm font-bold text-[var(--brand-accent)] underline decoration-[1.5px] underline-offset-4 group-hover:no-underline">View details</span>
       </div>
     </Link>
   );

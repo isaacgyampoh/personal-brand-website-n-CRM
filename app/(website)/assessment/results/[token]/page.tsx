@@ -30,7 +30,7 @@ export default async function Results({ params }: { params: Promise<{ token: str
         <p className="eyebrow">Next step</p>
         <p className="display-md mt-4">Turn these results into a plan.</p>
         <p className="lede mt-4 max-w-xl">Book a strategy conversation to walk through your scores and the three moves that will make the biggest difference.</p>
-        <Link href="/book" className="btn btn-accent mt-8">Book a consultation <span aria-hidden className="arrow">→</span></Link>
+        <Link href="/book" className="btn btn-accent mt-8">Book a consultation</Link>
       </div>
     </div>
   );

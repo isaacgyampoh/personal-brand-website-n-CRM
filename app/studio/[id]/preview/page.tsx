@@ -1,10 +1,10 @@
+import { themeCss as themeCssFor } from "@/lib/theme";
 import "../../../site.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireStaffPage } from "@/lib/auth/session";
 import { pageById } from "@/features/website/application/pages";
 import { getPublicSettings } from "@/lib/cache";
-import { FONT_PAIRS } from "@/lib/fonts";
 import { pageDataSchema, type PageData } from "@/features/website-builder/domain/blocks";
 import { RenderBlocks } from "@/components/website/blocks";
 import { SiteHeader } from "@/components/website/site-header";
@@ -20,8 +20,7 @@ export default async function DraftPreview({ params }: { params: Promise<{ id: s
   if (!page) notFound();
   const s = await getPublicSettings();
   const parsed = pageDataSchema.safeParse(page.draft_content);
-  const pair = FONT_PAIRS[s.theme.fontPair];
-  const css = `:root{--ink:${s.theme.ink};--paper:${s.theme.paper};--surface:${s.theme.surface};--brand-accent:${s.theme.accent};--brand-accent-ink:${s.theme.accentInk};--muted-ink:${s.theme.muted};--site-display:${pair.display};--site-body:${pair.body};--display-scale:${pair.displayScale}}`;
+  const css = themeCssFor(s.theme, ":root");
   return (
     <div className="site min-h-dvh">
       <style dangerouslySetInnerHTML={{ __html: css }} />

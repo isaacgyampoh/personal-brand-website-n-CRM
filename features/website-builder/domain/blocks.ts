@@ -44,6 +44,9 @@ export const blockSchemas = {
     imageUrl: safeImage,
     imageAlt: text(200),
     videoUrl,
+    /** Optional verified credential shown over the portrait (e.g. an award and its source). */
+    badgeTitle: text(90),
+    badgeText: text(120),
     tone,
   }),
   Introduction: z.object({

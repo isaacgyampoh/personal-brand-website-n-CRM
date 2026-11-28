@@ -137,19 +137,24 @@
   }
 }
 /* ==========================================================================
-   Public website design system ("site"). Brand values come from Settings →
-   Theme and are injected as CSS variables by the website layout.
+   Public website design system ("site"). Every colour and the typography come
+   from Studio (Business profile → Brand identity / Website → Design) and are
+   injected as CSS variables (lib/theme.ts). Nothing here hard-codes a brand.
    ========================================================================== */
 :root {
-  --ink: #1b1916;
-  --paper: #f6f1ea;
-  --surface: #ffffff;
-  --brand-accent: #8a5a3c;
+  --ink: #1f1418;
+  --paper: #ffffff;
+  --surface: #f8eef0;
+  --brand-accent: #8c2350;
   --brand-accent-ink: #ffffff;
-  --muted-ink: #6f675e;
-  --line: color-mix(in oklab, var(--ink) 14%, transparent);
-  --site-radius: 0px;
+  --muted-ink: #6b5a60;
+  --deep: #3a1526;
+  --highlight: #d4a66a;
+  --line: color-mix(in oklab, var(--ink) 12%, transparent);
+  --site-radius: 6px;
   --display-scale: 1;
+  --display-weight: 400;
+  --image-radius: calc(var(--site-radius) * 2.5);
 }
 
 /* Design-system classes live in the components layer so Tailwind utilities (hidden, sm:…, spacing)
@@ -159,128 +164,130 @@
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
-  font-feature-settings: "ss01", "kern";
+  font-feature-settings: "kern";
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
-.site ::selection { background: color-mix(in oklab, var(--brand-accent) 30%, transparent); }
-
-.site :focus-visible {
-  outline: 2px solid var(--brand-accent);
-  outline-offset: 3px;
-}
+.site ::selection { background: color-mix(in oklab, var(--brand-accent) 25%, transparent); }
+.site :focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 3px; }
 
 .font-display { font-family: var(--font-display); font-optical-sizing: auto; }
 
-.display-xl {
+.display-xl, .display-lg, .display-md, .display-sm {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: calc(clamp(2.9rem, 7.2vw, 6.6rem) * var(--display-scale));
-  line-height: 0.96;
-  letter-spacing: -0.025em;
+  font-weight: var(--display-weight);
+  font-optical-sizing: auto;
+  text-wrap: balance;
 }
-.display-lg {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: calc(clamp(2.3rem, 5vw, 4.4rem) * var(--display-scale));
-  line-height: 1.02;
-  letter-spacing: -0.02em;
-}
-.display-md {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: calc(clamp(1.8rem, 3.4vw, 2.9rem) * var(--display-scale));
-  line-height: 1.08;
-  letter-spacing: -0.015em;
-}
-.display-sm {
-  font-family: var(--font-display);
-  /* Single 400 weight keeps the font payload small (mobile LCP); slight tracking keeps small headings crisp. */
-  font-weight: 400;
-  letter-spacing: 0.005em;
-  font-size: calc(clamp(1.35rem, 2vw, 1.7rem) * var(--display-scale));
-  line-height: 1.2;
-}
-.display-xl em, .display-lg em, .display-md em, .display-sm em {
-  font-style: italic;
-  color: var(--brand-accent);
-}
+.display-xl { font-size: calc(clamp(2.8rem, 6.6vw, 6.2rem) * var(--display-scale)); line-height: 1; letter-spacing: -0.03em; }
+.display-lg { font-size: calc(clamp(2.2rem, 4.6vw, 4.1rem) * var(--display-scale)); line-height: 1.04; letter-spacing: -0.025em; }
+.display-md { font-size: calc(clamp(1.75rem, 3.1vw, 2.75rem) * var(--display-scale)); line-height: 1.1; letter-spacing: -0.02em; }
+.display-sm { font-size: calc(clamp(1.3rem, 1.9vw, 1.6rem) * var(--display-scale)); line-height: 1.2; letter-spacing: -0.01em; }
+.display-xl em, .display-lg em, .display-md em, .display-sm em { font-style: italic; color: var(--brand-accent); }
 
+/* Section labels: small tracked capitals in the brand colour (no decorative rules). */
 .eyebrow {
   font-family: var(--font-body);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.22em;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--muted-ink);
+  color: var(--brand-accent);
 }
-.eyebrow-rule { display: inline-flex; align-items: center; gap: 0.9rem; }
-.eyebrow-rule::before { content: ""; width: 2.25rem; height: 1px; background: currentColor; opacity: 0.6; }
+.eyebrow-rule { display: inline-block; }
 
-.lede { font-size: clamp(1.05rem, 1.35vw, 1.22rem); line-height: 1.7; color: color-mix(in oklab, var(--ink) 82%, var(--paper)); }
-.prose-site { font-size: 1.075rem; line-height: 1.8; }
+.lede { font-size: clamp(1.06rem, 1.3vw, 1.2rem); line-height: 1.7; color: color-mix(in oklab, var(--ink) 78%, var(--paper)); }
+.prose-site { font-size: 1.07rem; line-height: 1.8; }
 .prose-site p + p { margin-top: 1.15em; }
 
 .rule { height: 1px; background: var(--line); border: 0; }
 
+/* Buttons: solid brand colour, confident, sentence case. */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
-  min-height: 3rem; padding: 0.85rem 1.6rem;
-  font-family: var(--font-body); font-size: 0.82rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
-  border-radius: var(--site-radius); border: 1px solid transparent;
-  transition: background-color .25s ease, color .25s ease, border-color .25s ease, transform .25s ease;
+  min-height: 3.1rem; padding: 0.85rem 1.75rem;
+  font-family: var(--font-body); font-size: 0.95rem; font-weight: 600; letter-spacing: 0.01em;
+  border-radius: var(--site-radius); border: 1.5px solid transparent;
+  transition: background-color .25s ease, color .25s ease, border-color .25s ease, transform .25s ease, box-shadow .25s ease;
   cursor: pointer; text-decoration: none; white-space: nowrap;
 }
 .btn:disabled { opacity: .55; cursor: not-allowed; }
-.btn-primary { background: var(--ink); color: var(--paper); }
-.btn-primary:hover { background: var(--brand-accent); color: var(--brand-accent-ink); }
-.btn-accent { background: var(--brand-accent); color: var(--brand-accent-ink); }
-.btn-accent:hover { background: var(--ink); color: var(--paper); }
+.btn-primary, .btn-accent { background: var(--brand-accent); color: var(--brand-accent-ink); }
+.btn-primary:hover, .btn-accent:hover { background: color-mix(in oklab, var(--brand-accent) 82%, black); transform: translateY(-1px); box-shadow: 0 10px 24px -12px color-mix(in oklab, var(--brand-accent) 70%, transparent); }
 .btn-outline { border-color: currentColor; color: inherit; background: transparent; }
 .btn-outline:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .btn-link {
-  min-height: auto; padding: 0.35rem 0; letter-spacing: 0.14em;
-  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+  min-height: auto; padding: 0.3rem 0; font-weight: 700; color: var(--brand-accent);
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1.5px no-repeat;
 }
-.btn-link:hover { background-size: 0% 1px; background-position: 100% 100%; transition: background-size .35s ease; }
-.btn .arrow { transition: transform .25s ease; }
-.btn:hover .arrow { transform: translateX(4px); }
+.btn-link:hover { background-size: 0% 1.5px; background-position: 100% 100%; transition: background-size .35s ease; }
+/* Decorative arrows are not used anywhere on the site. */
+.site .arrow { display: none; }
 
-.tone-ink { --tone-bg: var(--ink); --tone-fg: var(--paper); }
-.tone-ink { background: var(--ink); color: var(--paper); --muted-ink: color-mix(in oklab, var(--paper) 65%, var(--ink)); --line: color-mix(in oklab, var(--paper) 18%, transparent); }
-.tone-ink .btn-primary { background: var(--paper); color: var(--ink); }
-.tone-ink .btn-primary:hover { background: var(--brand-accent); color: var(--brand-accent-ink); }
-.tone-ink .lede { color: color-mix(in oklab, var(--paper) 82%, var(--ink)); }
-/* Accent words on dark sections need a lighter tint of the brand colour to stay legible (WCAG AA). */
-.tone-ink .display-xl em, .tone-ink .display-lg em, .tone-ink .display-md em, .tone-ink .display-sm em { color: color-mix(in oklab, var(--brand-accent) 45%, var(--paper)); }
-.tone-accent { background: var(--brand-accent); color: var(--brand-accent-ink); --muted-ink: color-mix(in oklab, var(--brand-accent-ink) 75%, var(--brand-accent)); --line: color-mix(in oklab, var(--brand-accent-ink) 25%, transparent); }
-.tone-accent .display-xl em, .tone-accent .display-lg em, .tone-accent .display-md em { color: inherit; }
-.tone-accent .btn-primary { background: var(--brand-accent-ink); color: var(--brand-accent); }
-.tone-accent .lede { color: inherit; opacity: .9; }
-.tone-surface { background: var(--surface); }
+/* Section tones: white (paper), soft tint (surface), deep feature (ink → deep), brand (accent). */
 .tone-paper { background: var(--paper); }
+.tone-surface { background: var(--surface); }
+.tone-ink {
+  background: var(--deep); color: #fff;
+  --ink-on: #fff;
+  --muted-ink: color-mix(in oklab, #fff 72%, var(--deep));
+  --line: color-mix(in oklab, #fff 16%, transparent);
+}
+.tone-ink .eyebrow { color: var(--highlight); }
+.tone-ink .display-xl em, .tone-ink .display-lg em, .tone-ink .display-md em, .tone-ink .display-sm em { color: var(--highlight); }
+.tone-ink .lede { color: color-mix(in oklab, #fff 84%, var(--deep)); }
+.tone-ink .btn-primary { background: #fff; color: var(--deep); }
+.tone-ink .btn-primary:hover { background: var(--highlight); color: var(--deep); box-shadow: none; }
+.tone-ink .btn-accent { background: var(--brand-accent); color: var(--brand-accent-ink); }
+.tone-ink .btn-link { color: #fff; }
+.tone-ink .btn-outline:hover { background: #fff; color: var(--deep); border-color: #fff; }
+.tone-ink .card-frame { background: color-mix(in oklab, #fff 6%, var(--deep)); border-color: var(--line); }
+.tone-accent { background: var(--brand-accent); color: var(--brand-accent-ink); --muted-ink: color-mix(in oklab, var(--brand-accent-ink) 78%, var(--brand-accent)); --line: color-mix(in oklab, var(--brand-accent-ink) 25%, transparent); }
+.tone-accent .eyebrow { color: color-mix(in oklab, var(--brand-accent-ink) 80%, var(--brand-accent)); }
+.tone-accent .display-xl em, .tone-accent .display-lg em, .tone-accent .display-md em { color: inherit; }
+.tone-accent .btn-primary, .tone-accent .btn-accent { background: var(--brand-accent-ink); color: var(--brand-accent); }
+.tone-accent .btn-primary:hover, .tone-accent .btn-accent:hover { background: var(--deep); color: #fff; box-shadow: none; }
+.tone-accent .btn-link { color: inherit; }
+.tone-accent .lede { color: inherit; opacity: .92; }
 
 .field {
-  width: 100%; min-height: 3rem; padding: 0.8rem 0.95rem;
-  background: var(--surface); color: var(--ink);
-  border: 1px solid color-mix(in oklab, var(--ink) 22%, transparent); border-radius: var(--site-radius);
+  width: 100%; min-height: 3.1rem; padding: 0.8rem 0.95rem;
+  background: #fff; color: var(--ink);
+  border: 1px solid color-mix(in oklab, var(--ink) 20%, transparent); border-radius: var(--site-radius);
   font: inherit; font-size: 1rem;
 }
 .field:focus { outline: 2px solid var(--brand-accent); outline-offset: 0; border-color: transparent; }
-.field-label { display: block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; margin-bottom: 0.45rem; }
+.field-label { display: block; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em; margin-bottom: 0.45rem; }
 
-.card-frame { background: var(--surface); border: 1px solid var(--line); border-radius: var(--site-radius); }
+.card-frame { background: var(--paper); border: 1px solid var(--line); border-radius: calc(var(--site-radius) * 2); }
+.tone-paper .card-frame { background: color-mix(in oklab, var(--surface) 55%, var(--paper)); }
 
-.img-frame { position: relative; overflow: hidden; background: color-mix(in oklab, var(--ink) 6%, var(--paper)); border-radius: var(--site-radius); }
+.img-frame { position: relative; overflow: hidden; background: color-mix(in oklab, var(--ink) 6%, var(--paper)); border-radius: var(--image-radius); }
 .img-frame img { transition: transform 1.2s cubic-bezier(.2,.7,.2,1); }
-.group:hover .img-frame img { transform: scale(1.035); }
+.group:hover .img-frame img { transform: scale(1.03); }
 
 .monogram {
   font-family: var(--font-display); font-style: italic; line-height: 1; letter-spacing: -0.04em;
   color: color-mix(in oklab, var(--brand-accent) 70%, var(--ink));
 }
 
-/* Scroll reveal (progressive enhancement). Content is visible without JS. */
-.reveal-init .reveal { opacity: 0; transform: translateY(18px); transition: opacity .9s ease, transform .9s cubic-bezier(.2,.7,.2,1); }
+/* Hero credential badge (verified achievement shown over the portrait). */
+.hero-badge {
+  position: absolute; left: 0.75rem; bottom: 0.75rem;
+  max-width: calc(100% - 1.5rem); padding: 0.7rem 0.9rem;
+  background: #fff; color: var(--ink); border-radius: calc(var(--site-radius) * 2);
+  box-shadow: 0 24px 50px -20px rgb(0 0 0 / .45);
+  --muted-ink: color-mix(in oklab, var(--ink) 60%, #fff);
+}
+.hero-badge strong { display: block; font-family: var(--font-display); font-weight: var(--display-weight); font-size: 0.98rem; line-height: 1.25; }
+.hero-badge span { display: block; margin-top: .3rem; font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-accent); }
+@media (min-width: 1024px) {
+  .hero-badge { left: -1.75rem; bottom: 2.5rem; max-width: 21rem; padding: 1.1rem 1.3rem; }
+  .hero-badge strong { font-size: 1.15rem; }
+}
+
+/* Scroll reveal (progressive enhancement): short and subtle; content is visible without JS. */
+.reveal-init .reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
 .reveal-init .reveal.is-visible { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .reveal-init .reveal { opacity: 1; transform: none; transition: none; }
@@ -290,11 +297,8 @@
 .skip-link { position: absolute; left: 1rem; top: -4rem; z-index: 100; background: var(--ink); color: var(--paper); padding: .75rem 1rem; }
 .skip-link:focus { top: 1rem; }
 
-.marquee { display: flex; gap: 4rem; animation: marquee 40s linear infinite; width: max-content; }
-@keyframes marquee { to { transform: translateX(-50%); } }
-
 .site-container { width: 100%; max-width: 1320px; margin-inline: auto; padding-inline: clamp(1.25rem, 4vw, 3rem); }
-.section-y { padding-block: clamp(4.5rem, 10vw, 9rem); }
+.section-y { padding-block: clamp(4rem, 9vw, 8rem); }
 .section-y-sm { padding-block: clamp(3rem, 6vw, 5rem); }
 
 .demo-flag {
@@ -304,11 +308,9 @@
 
 /* Typographic cover used when no photograph has been uploaded yet. */
 .cover-type {
-  color: var(--ink);
-  background:
-    linear-gradient(var(--line), var(--line)) 50% 0 / 1px 100% no-repeat,
-    color-mix(in oklab, var(--brand-accent) 13%, var(--paper));
+  color: #fff;
+  background: radial-gradient(120% 90% at 100% 0%, color-mix(in oklab, var(--brand-accent) 55%, var(--deep)), var(--deep));
   overflow: hidden;
 }
-.group:nth-child(3n+2) .cover-type, .cover-alt { background-color: color-mix(in oklab, var(--ink) 92%, var(--brand-accent)); color: var(--paper); }
+.cover-type .monogram { color: var(--highlight); }
 }

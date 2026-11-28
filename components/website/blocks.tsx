@@ -20,8 +20,8 @@ async function Services(p: BlockProps<"Services">) {
     <section className={`${toneClass(p.tone)} section-y`}>
       <div className="site-container">
         <SectionHead eyebrow={p.eyebrow} heading={p.heading} intro={p.intro} cta={p.cta} />
-        <div className="grid gap-x-10 gap-y-14 md:grid-cols-2 lg:grid-cols-3">
-          {items.map((s, i) => <div key={s.id} className="reveal"><ServiceCard s={s} index={i} /></div>)}
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+          {items.map((s, i) => <div key={s.id} className="reveal h-full"><ServiceCard s={s} index={i} /></div>)}
         </div>
       </div>
     </section>
@@ -126,7 +126,7 @@ async function BookingCard(p: BlockProps<"BookingCard">) {
             <p className="mt-4 text-[var(--muted-ink)]">{p.body || service.summary}</p>
           </div>
           <div className="md:col-span-4 md:col-start-9 md:text-right">
-            <Link href={`/book/${service.slug}`} className="btn btn-primary">Choose a time <span className="arrow" aria-hidden>→</span></Link>
+            <Link href={`/book/${service.slug}`} className="btn btn-primary">Choose a time</Link>
           </div>
         </div>
       </div>

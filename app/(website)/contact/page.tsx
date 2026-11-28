@@ -27,10 +27,10 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             {TYPES.map((t) => (
               <Link key={t.key} href={`/contact?type=${t.key}`} aria-current={type === t.key ? "true" : undefined}
                 className={`flex min-h-12 items-center justify-between border-b border-[var(--line)] py-3 ${type === t.key ? "font-semibold text-[var(--brand-accent)]" : ""}`}>
-                {t.label}<span aria-hidden>→</span>
+                {t.label}
               </Link>
             ))}
-            <Link href="/speaking#enquire" className="flex min-h-12 items-center justify-between border-b border-[var(--line)] py-3">Speaking invitation<span aria-hidden>→</span></Link>
+            <Link href="/speaking#enquire" className="flex min-h-12 items-center justify-between border-b border-[var(--line)] py-3">Speaking invitation</Link>
           </nav>
           {(s.contact.email || s.contact.phone || s.contact.whatsapp || s.contact.address) && (
             <dl className="space-y-4 text-sm">

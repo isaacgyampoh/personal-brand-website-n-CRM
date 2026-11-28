@@ -127,7 +127,7 @@ export function PopupView({ popup: p, onClose, onCta, mode = "live" }: Props) {
             <div className="pp-actions">
               <a className="pp-cta" href={p.href || "#"} onClick={(ev) => { if (mode !== "live") { ev.preventDefault(); return; } onCta(); }}
                 {...(external ? { target: "_blank", rel: "noopener" } : {})}>
-                {p.buttonText || "Learn more"}<span aria-hidden>→</span>
+                {p.buttonText || "Learn more"}
               </a>
               {p.layout !== "flyer" && p.layout !== "sheet" && <button type="button" className="pp-later" onClick={() => onClose("dismiss")}>Maybe later</button>}
             </div>

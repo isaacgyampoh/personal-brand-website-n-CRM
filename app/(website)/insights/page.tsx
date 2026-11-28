@@ -51,7 +51,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: SP 
           </div>
           <nav aria-label="Pagination" className="mt-20 flex justify-between">
             {page > 1 ? <Link className="btn btn-link" href={`/insights${qs({ page: String(page - 1) })}`}>← Newer</Link> : <span />}
-            {hasMore && <Link className="btn btn-link" href={`/insights${qs({ page: String(page + 1) })}`}>Older →</Link>}
+            {hasMore && <Link className="btn btn-link" href={`/insights${qs({ page: String(page + 1) })}`}>Older articles</Link>}
           </nav>
         </div>
       )}

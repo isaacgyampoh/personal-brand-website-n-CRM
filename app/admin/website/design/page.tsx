@@ -26,9 +26,10 @@ export default async function DesignPage() {
       <Panel title="Colours & typography" description="Check text contrast stays readable (WCAG AA) when changing colours.">
         <SettingsForm settingKey="theme" initial={s.theme} fields={[
           { name: "ink", label: "Text / ink", type: "color" }, { name: "paper", label: "Background", type: "color" },
-          { name: "surface", label: "Cards / surfaces", type: "color" }, { name: "accent", label: "Accent", type: "color" },
-          { name: "accentInk", label: "Text on accent", type: "color" }, { name: "muted", label: "Secondary text", type: "color" },
-          { name: "fontPair", label: "Typography", type: "select", options: [["editorial", "Editorial — Cormorant Garamond + Manrope"], ["classic", "Classic — Playfair Display + Source Sans"], ["modern", "Modern — Instrument Serif + Inter"]] },
+          { name: "surface", label: "Alternate section background", type: "color" }, { name: "accent", label: "Brand colour (buttons, highlights)", type: "color" },
+          { name: "accentInk", label: "Text on brand colour", type: "color" }, { name: "muted", label: "Secondary text", type: "color" },
+          { name: "deep", label: "Dark sections, hero & footer", type: "color" }, { name: "highlight", label: "Gold details on dark sections", type: "color" },
+          { name: "fontPair", label: "Typography", type: "select", options: [["signature", "Signature — Fraunces + Manrope"], ["editorial", "Editorial — Cormorant Garamond + Manrope"], ["classic", "Classic — Playfair Display + Source Sans"], ["modern", "Modern — Instrument Serif + Inter"]] },
           { name: "corners", label: "Corners", type: "select", options: [["square", "Square (editorial)"], ["soft", "Softly rounded"]] },
         ]} />
       </Panel>

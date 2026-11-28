@@ -1,8 +1,8 @@
+import { themeCss as themeCssFor } from "@/lib/theme";
 import "../site.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublicSettings } from "@/lib/cache";
-import { FONT_PAIRS } from "@/lib/fonts";
 import { getPublicEvents } from "@/features/website/application/public-queries";
 import { SocialLinks } from "@/components/website/social-links";
 
@@ -11,7 +11,6 @@ export const metadata: Metadata = { title: "Links" };
 /** Mobile-first link-in-bio page (replaces a Linktree subscription). */
 export default async function LinksPage() {
   const [s, events] = await Promise.all([getPublicSettings(), getPublicEvents()]);
-  const pair = FONT_PAIRS[s.theme.fontPair];
   const next = events.find((e) => e.status === "published" && Date.parse(e.startsAt) > Date.now());
   const items = s.links.items.length ? s.links.items : [
     { label: "Book a session", href: "/book", highlight: true },
@@ -19,7 +18,7 @@ export default async function LinksPage() {
     { label: "Insights", href: "/insights", highlight: false },
     { label: "Website", href: "/", highlight: false },
   ];
-  const css = `:root{--ink:${s.theme.ink};--paper:${s.theme.paper};--surface:${s.theme.surface};--brand-accent:${s.theme.accent};--brand-accent-ink:${s.theme.accentInk};--muted-ink:${s.theme.muted};--site-display:${pair.display};--site-body:${pair.body}}`;
+  const css = themeCssFor(s.theme, ":root");
   return (
     <div className="site min-h-dvh">
       <style dangerouslySetInnerHTML={{ __html: css }} />
@@ -35,14 +34,14 @@ export default async function LinksPage() {
         </div>
         <ul className="mt-10 space-y-3">
           {next && (
-            <li><Link href={`/masterclasses/${next.slug}`} className="block border border-[var(--brand-accent)] bg-[var(--brand-accent)] px-5 py-4 text-center text-[var(--brand-accent-ink)]"><span className="eyebrow block !text-[inherit] opacity-80">Next masterclass</span><span className="mt-1 block font-semibold">{next.title}</span></Link></li>
+            <li><Link href={`/masterclasses/${next.slug}`} className="block rounded-[calc(var(--site-radius)*2)] border border-[var(--brand-accent)] bg-[var(--brand-accent)] px-5 py-4 text-center text-[var(--brand-accent-ink)]"><span className="eyebrow block !text-[inherit] opacity-80">Next masterclass</span><span className="mt-1 block font-semibold">{next.title}</span></Link></li>
           )}
           {s.contact.whatsapp && (
-            <li><a href={`https://wa.me/${s.contact.whatsapp.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer" className="flex min-h-14 items-center justify-center border border-[var(--line)] bg-[var(--surface)] px-5 py-4 text-center font-semibold hover:border-[var(--ink)]">Chat on WhatsApp</a></li>
+            <li><a href={`https://wa.me/${s.contact.whatsapp.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer" className="flex min-h-14 items-center justify-center rounded-[calc(var(--site-radius)*2)] border border-[var(--line)] bg-[var(--surface)] px-5 py-4 text-center font-semibold hover:border-[var(--brand-accent)] hover:text-[var(--brand-accent)]">Chat on WhatsApp</a></li>
           )}
           {items.map((l, i) => (
             <li key={i}>
-              <Link href={l.href} className={`flex min-h-14 items-center justify-center border px-5 py-4 text-center font-semibold transition-colors ${l.highlight ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]" : "border-[var(--line)] bg-[var(--surface)] hover:border-[var(--ink)]"}`}>{l.label}</Link>
+              <Link href={l.href} className={`flex min-h-14 items-center justify-center rounded-[calc(var(--site-radius)*2)] border px-5 py-4 text-center font-semibold transition-colors ${l.highlight ? "border-[var(--deep)] bg-[var(--deep)] text-white hover:border-[var(--brand-accent)] hover:bg-[var(--brand-accent)]" : "border-[var(--line)] bg-[var(--surface)] hover:border-[var(--brand-accent)] hover:text-[var(--brand-accent)]"}`}>{l.label}</Link>
             </li>
           ))}
         </ul>

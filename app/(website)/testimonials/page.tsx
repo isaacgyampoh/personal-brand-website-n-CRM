@@ -26,7 +26,7 @@ export default async function TestimonialsPage() {
           ))}
         </div>
       )}
-      <div className="site-container pb-28"><Link href="/testimonials/share" className="btn btn-link">Worked with me? Share your experience →</Link></div>
+      <div className="site-container pb-28"><Link href="/testimonials/share" className="btn btn-link">Worked with me? Share your experience</Link></div>
     </>
   );
 }

@@ -4,7 +4,7 @@ export function AnnouncementBar({ text, href }: { text: string; href: string }) 
   const inner = (
     <span className="inline-flex items-center gap-3">
       <span>{text}</span>
-      {href && <span aria-hidden>→</span>}
+      
     </span>
   );
   return (

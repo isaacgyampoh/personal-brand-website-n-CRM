@@ -1,7 +1,7 @@
+import { themeCss as themeCssFor } from "@/lib/theme";
 import "../site.css";
 import type { Metadata } from "next";
 import { getPublicSettings } from "@/lib/cache";
-import { FONT_PAIRS } from "@/lib/fonts";
 import { SiteHeader } from "@/components/website/site-header";
 import { SiteFooter } from "@/components/website/site-footer";
 import { AnnouncementBar } from "@/components/website/announcement-bar";
@@ -23,9 +23,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function WebsiteLayout({ children }: { children: React.ReactNode }) {
   const s = await getPublicSettings();
-  const pair = FONT_PAIRS[s.theme.fontPair];
   // Values are validated hex colours / known font variables (see settings schema).
-  const themeCss = `:root{--ink:${s.theme.ink};--paper:${s.theme.paper};--surface:${s.theme.surface};--brand-accent:${s.theme.accent};--brand-accent-ink:${s.theme.accentInk};--muted-ink:${s.theme.muted};--site-display:${pair.display};--site-body:${pair.body};--display-scale:${pair.displayScale};--site-radius:${s.theme.corners === "soft" ? "6px" : "0px"}}`;
+  const themeCss = themeCssFor(s.theme, ":root");
   const now = Date.now();
   const a = s.announcement;
   const showAnnouncement = a.enabled && a.text && (!a.startsAt || Date.parse(a.startsAt) <= now) && (!a.endsAt || Date.parse(a.endsAt) > now);
